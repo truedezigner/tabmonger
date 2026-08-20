@@ -112,6 +112,14 @@ done
 sudo grep -qi '^Content-Security-Policy:' "$CANDIDATE_HEADERS"
 sudo grep -q 'Your tabs\.' "$CANDIDATE_BODY"
 sudo grep -q 'Your rules\.' "$CANDIDATE_BODY"
+for release_asset in \
+  TabMonger-portable.zip \
+  TabMonger-Chromium-extension.zip \
+  TabMonger-Firefox-extension.zip; do
+  sudo grep -Fq "href=\"https://github.com/truedezigner/tabmonger/releases/latest/download/${release_asset}\"" "$CANDIDATE_BODY"
+done
+sudo grep -Fq 'Start TabMonger.command' "$CANDIDATE_BODY"
+sudo grep -Fq 'Standard Firefox installation is temporary until Mozilla signing' "$CANDIDATE_BODY"
 if [ "$PUBLIC_STRIPE_SUPPORT_READY" = "true" ]; then
   SUPPORT_LINK_COUNT=$(sudo grep -o 'href="https://buy\.stripe\.com/[^" ]*"' "$CANDIDATE_BODY" | wc -l)
   if [ "$SUPPORT_LINK_COUNT" -ne 3 ]; then

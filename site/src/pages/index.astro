@@ -5,8 +5,13 @@ import SupportIcon from '../components/SupportIcon.astro';
 
 const githubUrl = 'https://github.com/truedezigner/tabmonger';
 const downloadUrl = `${githubUrl}/releases/latest/download/TabMonger-portable.zip`;
+const chromiumDownloadUrl = `${githubUrl}/releases/latest/download/TabMonger-Chromium-extension.zip`;
+const firefoxDownloadUrl = `${githubUrl}/releases/latest/download/TabMonger-Firefox-extension.zip`;
 const quickStartUrl = `${githubUrl}#quick-start`;
 const extensionsUrl = `${githubUrl}/tree/main/extensions`;
+const macSetupUrl = `${githubUrl}/blob/main/docs/INSTALL.md#macos`;
+const chromiumSetupUrl = `${githubUrl}/blob/main/extensions/README.md#chrome-or-brave`;
+const firefoxSetupUrl = `${githubUrl}/blob/main/extensions/README.md#firefox-development-install`;
 const supportFlag = import.meta.env.PUBLIC_STRIPE_SUPPORT_READY?.trim().toLowerCase();
 const supportCandidate = import.meta.env.PUBLIC_SUPPORT_URL?.trim() || import.meta.env.PUBLIC_STRIPE_SUPPORT_URL?.trim();
 let supportUrl: string | undefined;
@@ -50,7 +55,7 @@ const steps = [
     <a href="#top" class="brand-link" aria-label="TabMonger home"><Logo /></a>
     <nav aria-label="Main navigation">
       <a href="#features">Features</a>
-      <a href="#install">Install</a>
+      <a href="#downloads">Downloads</a>
       <a href="#use-everywhere">Use everywhere</a>
       <a href="#community">Community</a>
       <a href={githubUrl}>GitHub</a>
@@ -177,6 +182,62 @@ const steps = [
       <aside class="safety-note"><b>Keep it private.</b> TabMonger is designed for your LAN or a protected private network. Do not expose your personal dashboard directly to the public internet without authentication.</aside>
     </section>
 
+    <section class="section downloads-section" id="downloads">
+      <div class="shell">
+        <div class="section-heading centered downloads-heading">
+          <p class="eyebrow"><span></span> App and new-tab companions</p>
+          <h2>Start it once.<br /><em>Bring it to every browser.</em></h2>
+          <p>Run TabMonger on one trusted computer, then add the small companion for each browser you want to open to your shared dashboard.</p>
+        </div>
+
+        <div class="download-grid">
+          <article class="download-card app-download-card">
+            <div class="download-card-top">
+              <span class="platform-mark platform-mac" aria-hidden="true">TM</span>
+              <span class="download-kind">TabMonger host</span>
+            </div>
+            <h3>Run it on macOS</h3>
+            <p>Download the complete portable release and keep your dashboard and private data on your Mac.</p>
+            <div class="download-actions">
+              <a class="button button-primary download-button" href={downloadUrl}>Download for macOS <span aria-hidden="true">↓</span></a>
+              <a class="download-source-link" href={macSetupUrl}>Setup and source <span aria-hidden="true">→</span></a>
+            </div>
+            <small>Requires Python 3.10+. Unzip it, then open <code>Start TabMonger.command</code>.</small>
+          </article>
+
+          <article class="download-card">
+            <div class="download-card-top">
+              <span class="platform-mark platform-chromium" aria-hidden="true"><i></i></span>
+              <span class="download-kind">New-tab companion</span>
+            </div>
+            <h3>Chrome, Brave, and Edge</h3>
+            <p>Point every new tab at the TabMonger address already running on your trusted network.</p>
+            <div class="download-actions">
+              <a class="button download-button" href={chromiumDownloadUrl}>Download for Chrome / Brave / Edge <span aria-hidden="true">↓</span></a>
+              <a class="download-source-link" href={chromiumSetupUrl}>Source and setup <span aria-hidden="true">→</span></a>
+            </div>
+            <small>Unzip it, enable Developer mode, and load the extracted <code>TabMonger-Chromium-extension</code> folder.</small>
+          </article>
+
+          <article class="download-card">
+            <div class="download-card-top">
+              <span class="platform-mark platform-firefox" aria-hidden="true">F</span>
+              <span class="download-kind">New-tab companion</span>
+            </div>
+            <h3>Firefox</h3>
+            <p>Use the same lightweight companion without sending your dashboard address to a hosted service.</p>
+            <div class="download-actions">
+              <a class="button download-button" href={firefoxDownloadUrl}>Download Firefox ZIP <span aria-hidden="true">↓</span></a>
+              <a class="download-source-link" href={firefoxSetupUrl}>Source and setup <span aria-hidden="true">→</span></a>
+            </div>
+            <small>Standard Firefox installation is temporary until Mozilla signing; Firefox removes the manually loaded add-on after restart.</small>
+          </article>
+        </div>
+
+        <p class="downloads-note">All three downloads come from the public GitHub release. The companion extensions contain no analytics, remote code, accounts, or payment code.</p>
+      </div>
+    </section>
+
     <section class="section network-story" id="use-everywhere">
       <div class="shell network-grid">
         <div class="network-copy">
@@ -265,7 +326,7 @@ const steps = [
   <footer>
     <div class="shell footer-grid">
       <div><Logo /><p>A quiet home for everything you host.</p></div>
-      <div><b>Project</b><a href="#features">Features</a><a href="#install">Install</a><a href={extensionsUrl}>New-tab companions</a><a href={githubUrl}>Source code</a></div>
+      <div><b>Project</b><a href="#features">Features</a><a href="#install">Setup</a><a href="#downloads">Downloads</a><a href={extensionsUrl}>New-tab companion source</a><a href={githubUrl}>Source code</a></div>
       <div><b>Principles</b><span>Private by default</span><span>No telemetry</span><a href="/privacy/">Privacy</a></div>
       <div><b>Community</b><a href={`${githubUrl}/issues`}>Ideas and issues</a>{supportReady ? <a href={supportUrl} target="_blank" rel="noopener">Optional contribution</a> : <span>Contributions opening soon</span>}<a href="/support-policy/">Support policy</a></div>
     </div>

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.1 — Direct browser downloads
+
+### Added
+
+- Direct, checksummed Chrome/Brave/Edge and Firefox companion ZIP downloads
+- A dedicated public-site download section with clear macOS, Chromium-family, and Firefox setup choices
+- Source and setup links beside every browser download so the packages stay inspectable
+
+### Fixed
+
+- Rounded the dashboard search action's right edge while hovered so its highlight follows the search bar shape
+
 ## 1.1.0 — Portable community release
 
 ### Added

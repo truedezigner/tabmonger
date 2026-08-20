@@ -34,6 +34,13 @@ Or download the repository ZIP and use the same platform launchers. Linux users 
 
 The repository includes build-free companions for Chrome, Edge, and Firefox under [`extensions/`](extensions/). Each extension remembers one TabMonger address and opens it as the browser’s new-tab destination.
 
+Direct packages from the latest release:
+
+- [Chrome, Brave, and Edge companion ZIP](https://github.com/truedezigner/tabmonger/releases/latest/download/TabMonger-Chromium-extension.zip)
+- [Firefox companion ZIP](https://github.com/truedezigner/tabmonger/releases/latest/download/TabMonger-Firefox-extension.zip)
+
+Extract the browser ZIP before loading it. The package contains one ready-to-load extension folder; its matching source and complete setup instructions remain in [`extensions/`](extensions/).
+
 1. Start TabMonger on one trusted computer.
 2. Confirm its printed LAN address opens from the other computer.
 3. Load the matching extension and save that address once.

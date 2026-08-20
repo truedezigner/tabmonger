@@ -27,7 +27,7 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT / "public"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 LEGACY_DATA = ROOT / "data"
 LEGACY_UPLOADS = ROOT / "assets" / "uploads"
 MAX_BODY = 24 * 1024 * 1024

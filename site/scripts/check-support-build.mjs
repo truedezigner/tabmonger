@@ -6,6 +6,12 @@ const siteRoot = new URL('..', import.meta.url);
 const builtPage = new URL('../dist/index.html', import.meta.url);
 const stripeHost = ['buy', 'stripe', 'com'].join('.');
 const smokeCheckoutUrl = `https://${stripeHost}/support-smoke-placeholder`;
+const releaseBaseUrl = 'https://github.com/truedezigner/tabmonger/releases/latest/download';
+const requiredReleaseAssets = [
+  `${releaseBaseUrl}/TabMonger-portable.zip`,
+  `${releaseBaseUrl}/TabMonger-Chromium-extension.zip`,
+  `${releaseBaseUrl}/TabMonger-Firefox-extension.zip`,
+];
 
 function redacted(value = '') {
   return value.replace(/https:\/\/buy\.stripe\.com\/[^\s"']+/g, '[STRIPE_URL_REDACTED]');
@@ -29,7 +35,25 @@ function build(label, overrides, shouldPass = true) {
     process.stderr.write(redacted(result.stderr));
     throw new Error(`${label}: build ${passed ? 'passed' : 'failed'} unexpectedly.`);
   }
-  return passed ? readFileSync(builtPage, 'utf8') : `${result.stdout}\n${result.stderr}`;
+  if (!passed) return `${result.stdout}\n${result.stderr}`;
+  const html = readFileSync(builtPage, 'utf8');
+  assertReleaseDownloads(html, label);
+  return html;
+}
+
+function assertReleaseDownloads(html, label) {
+  for (const assetUrl of requiredReleaseAssets) {
+    if (!html.includes(`href="${assetUrl}"`)) {
+      throw new Error(`${label}: missing required release download ${assetUrl.split('/').at(-1)}.`);
+    }
+  }
+  for (const disclosure of [
+    'Python 3.10+',
+    'Start TabMonger.command',
+    'Standard Firefox installation is temporary until Mozilla signing',
+  ]) {
+    if (!html.includes(disclosure)) throw new Error(`${label}: missing download disclosure: ${disclosure}.`);
+  }
 }
 
 function assertActive(html, label) {
@@ -78,4 +102,4 @@ for (const [label, value] of [
   }
 }
 
-console.log('Support checkout smoke check passed: preferred and legacy Stripe links, 3 CTAs, pending state, and invalid-host rejection.');
+console.log('Site smoke check passed: release downloads, setup disclosures, preferred and legacy Stripe links, 3 CTAs, pending state, and invalid-host rejection.');
