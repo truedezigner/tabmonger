@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-20 — Public project foundation
+
+### Added
+
+- Final vector logo, favicon, wordmark, and responsive Astro product website
+- One-command user-service installer
+- MIT license and public deployment security guidance
+- Stripe-hosted, supporter-chosen one-time contribution flow with no payment code in the site
+- Privacy and voluntary-support policy pages
+- Podman, Nginx, systemd, and Cloudflare deployment configuration for `tabmonger.com`
+
+### Changed
+
+- Generalized the example systemd service to avoid a machine-specific home path
+- Documented the official website and safe private-network deployment model
+
 ## 2026-08-19 — Complete lightweight dashboard foundation
 
 ### Added

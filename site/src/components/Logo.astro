@@ -1,0 +1,28 @@
+---
+interface Props {
+  wordmark?: boolean;
+  compact?: boolean;
+}
+
+const { wordmark = true, compact = false } = Astro.props;
+---
+<span class:list={["logo-lockup", compact && "logo-lockup--compact"]}>
+  <svg class="logo-mark" viewBox="0 0 64 64" role="img" aria-label="TabMonger logo">
+    <defs>
+      <linearGradient id="tm-surface" x1="10" y1="7" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#1b2a40" />
+        <stop offset="1" stop-color="#101722" />
+      </linearGradient>
+    </defs>
+    <rect x="5" y="5" width="54" height="54" rx="14" fill="url(#tm-surface)" stroke="#52698f" stroke-width="2" />
+    <path d="M6 19h52" stroke="#52698f" stroke-width="2" />
+    <circle cx="14" cy="12" r="2.2" fill="#edf2fb" />
+    <circle cx="21" cy="12" r="2.2" fill="#7f96c9" />
+    <circle cx="28" cy="12" r="2.2" fill="#52698f" />
+    <path d="M11 25h10l11 9 11-9h10v28H42V38l-10 8-10-8v15H11V25Z" fill="#edf2fb" />
+    <rect x="27" y="42" width="10" height="5" rx="1.5" fill="#7f96c9" />
+    <rect x="27" y="49" width="4" height="4" rx="1" fill="#52698f" />
+    <rect x="33" y="49" width="4" height="4" rx="1" fill="#101722" />
+  </svg>
+  {wordmark && <span class="logo-word">Tab<span>Monger</span></span>}
+</span>

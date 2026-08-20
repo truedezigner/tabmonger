@@ -4,6 +4,8 @@
 
 TabMonger is a working, persistent, dependency-free personal dashboard running as `tabmonger.service` on port `8787`. **TabMonger is the finalized product name.**
 
+The public product website is an Astro static build under `site/`, deployed as `tabmonger-site` on the PageFollower CT. `tabmonger.com` is the official domain.
+
 ## Architecture
 
 - `server.py` — Python standard-library HTTP server, API, SQLite persistence, cached weather, service checks, and rotating backups

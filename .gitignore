@@ -21,3 +21,6 @@ venv/
 .vscode/
 *.log
 .cache/
+node_modules/
+dist/
+.astro/

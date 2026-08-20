@@ -1,0 +1,25 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Logo from '../components/Logo.astro';
+---
+<Layout title="Privacy — TabMonger" description="TabMonger website privacy information.">
+  <main class="legal shell">
+    <a href="/" class="brand-link"><Logo /></a>
+    <p class="eyebrow"><span></span> Privacy</p>
+    <h1>The short version: this site does not track you.</h1>
+    <p class="legal-lede">The TabMonger website uses no analytics, advertising pixels, user accounts, cookies, or third-party JavaScript.</p>
+    <section>
+      <h2>Ordinary server logs</h2>
+      <p>The web host may temporarily record standard technical request information such as IP address, requested path, browser user agent, and timestamp for reliability and abuse prevention.</p>
+    </section>
+    <section>
+      <h2>One-time support</h2>
+      <p>If you choose to support TabMonger, you leave this site for a Stripe-hosted checkout. Stripe processes the payment under its own privacy policy. TabMonger’s website does not receive or store your card or bank details.</p>
+    </section>
+    <section>
+      <h2>The dashboard app</h2>
+      <p>Your self-hosted TabMonger installation keeps its links, settings, icons, background, and backups on your own server. It includes no telemetry.</p>
+    </section>
+    <a class="button" href="/">← Return home</a>
+  </main>
+</Layout>

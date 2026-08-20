@@ -2,17 +2,32 @@
 
 An extremely lightweight personal launch dashboard and Heimdall replacement. It is one Python standard-library process, SQLite, and plain HTML/CSS/JavaScript: no package installation, framework, container, build step, telemetry, or external CDN.
 
+**Website:** [tabmonger.com](https://tabmonger.com) · **License:** [MIT](LICENSE)
+
 The interface uses one consistent cool blue-gray visual system across search, dialogs, settings, forms, tabs, controls, and status elements. Individual service tiles retain their own brand colors.
 
 ## Run
 
+### Quick start
+
 ```bash
+git clone https://github.com/truedezigner/tabmonger.git
+cd tabmonger
 python3 server.py --host 0.0.0.0 --port 8787
 ```
 
 Open `http://127.0.0.1:8787` locally or `http://192.168.29.44:8787` on the LAN.
 
-The installed user service is `tabmonger.service` and starts automatically.
+For an automatic per-user systemd service:
+
+```bash
+./install.sh
+```
+
+The installer uses the current checkout path, starts TabMonger immediately, enables it at login, and does not require root.
+
+> [!IMPORTANT]
+> Keep personal TabMonger instances on a trusted LAN, VPN, or behind authentication. The app intentionally has no user-account system and should not be exposed directly to the public internet.
 
 ## Features
 

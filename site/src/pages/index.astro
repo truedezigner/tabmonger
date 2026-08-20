@@ -1,0 +1,199 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Logo from '../components/Logo.astro';
+
+const githubUrl = 'https://github.com/truedezigner/tabmonger';
+const downloadUrl = `${githubUrl}/archive/refs/heads/main.zip`;
+const supportUrl = import.meta.env.PUBLIC_STRIPE_SUPPORT_URL?.trim();
+const supportReady = Boolean(supportUrl) && import.meta.env.PUBLIC_STRIPE_SUPPORT_READY === 'true';
+
+const features = [
+  ['Everything in its place', 'Pin favorites, drag to reorder, organize with tags, search locally, and recover links from the trash.'],
+  ['Search without surrender', 'Use your own SearXNG first, search saved links instantly, and keep provider choices to two clear options.'],
+  ['Quiet service awareness', 'See whether private services are reachable without making every browser tab hammer your network.'],
+  ['Make it yours', 'Upload a background and icons, choose light or dark mode, change density, and add trusted custom CSS.'],
+  ['Bring everything with you', 'Import Heimdall data or browser bookmarks, then export one portable JSON backup with settings and assets.'],
+  ['Small on purpose', 'One Python standard-library process, SQLite, plain HTML/CSS/JavaScript, and no runtime package installation.']
+];
+
+const steps = [
+  ['1', 'Download', 'Grab the source from GitHub or clone the repository.'],
+  ['2', 'Run', 'Start one Python file. There is no build step for the dashboard.'],
+  ['3', 'Open', 'Point your browser’s new-tab page at your TabMonger address.']
+];
+---
+<Layout>
+  <header class="site-header shell">
+    <a href="#top" class="brand-link" aria-label="TabMonger home"><Logo /></a>
+    <nav aria-label="Main navigation">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#how-it-stays-light">How it works</a>
+      <a href={githubUrl}>GitHub</a>
+    </nav>
+    <a class:list={["button button-small coffee-button", !supportReady && "is-pending"]} href={supportReady ? supportUrl : '#support'} aria-label="Support TabMonger with a one-time contribution">
+      <span class="cup-icon" aria-hidden="true"></span> Support
+    </a>
+  </header>
+
+  <main id="top">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> Self-hosted. Private. Tiny.</p>
+        <h1>Your tabs.<br /><em>Your server.</em><br />Your rules.</h1>
+        <p class="hero-lede">TabMonger is a fast, dependency-free home for every link and service you use—without turning your new tab into another cloud account.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href={downloadUrl}>Download TabMonger <span aria-hidden="true">↓</span></a>
+          <a class="button" href="#install">Install in 60 seconds</a>
+        </div>
+        <p class="hero-note">Free and open source. No telemetry. No account. Optional support only.</p>
+      </div>
+
+      <div class="dashboard-stage" aria-label="TabMonger dashboard preview">
+        <div class="glow"></div>
+        <article class="dashboard-demo">
+          <div class="demo-topbar">
+            <Logo compact={true} />
+            <div class="demo-date"><b>Thursday</b><span>August 20</span></div>
+            <div class="demo-weather"><span>☀</span><b>72°</b></div>
+            <button aria-label="Settings">⌁</button>
+          </div>
+          <div class="demo-search">
+            <span>SearXNG</span>
+            <p>Search the web or your links…</p>
+            <kbd>/</kbd>
+          </div>
+          <div class="demo-tabs"><b>Pinned</b><span>All links</span><span>Tags</span><i>7 services up</i></div>
+          <div class="demo-grid">
+            <div class="demo-tile violet"><span>OW</span><p><b>Open WebUI</b><small>Local AI</small></p><i class="up"></i></div>
+            <div class="demo-tile blue"><span>JF</span><p><b>Jellyfin</b><small>Media</small></p><i class="up"></i></div>
+            <div class="demo-tile orange"><span>CF</span><p><b>Cloudflare</b><small>Network</small></p><i class="up"></i></div>
+            <div class="demo-tile teal"><span>SE</span><p><b>SearXNG</b><small>Search</small></p><i class="up"></i></div>
+            <div class="demo-tile slate"><span>GH</span><p><b>GitHub</b><small>Development</small></p><i></i></div>
+            <div class="demo-tile red"><span>PX</span><p><b>Proxmox</b><small>Infrastructure</small></p><i class="up"></i></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="proof-strip" aria-label="Technical summary">
+      <div class="shell proof-grid">
+        <p><b>~12 MB</b><span>Typical memory</span></p>
+        <p><b>0</b><span>Runtime dependencies</span></p>
+        <p><b>1</b><span>Small Python process</span></p>
+        <p><b>100%</b><span>Your data, locally</span></p>
+      </div>
+    </section>
+
+    <section class="section shell" id="features">
+      <div class="section-heading">
+        <p class="eyebrow"><span></span> Full-featured, not full-sized</p>
+        <h2>The useful parts of a dashboard.<br /><em>None of the baggage.</em></h2>
+        <p>TabMonger replaces Heimdall with the features you actually touch every day, then adds careful search, portability, and service awareness.</p>
+      </div>
+      <div class="feature-grid">
+        {features.map(([title, body], index) => (
+          <article class="feature-card">
+            <span class="feature-number">0{index + 1}</span>
+            <div class={`feature-icon icon-${index + 1}`} aria-hidden="true"><i></i><i></i><i></i></div>
+            <h3>{title}</h3>
+            <p>{body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="section light-story" id="how-it-stays-light">
+      <div class="shell story-grid">
+        <div class="story-copy">
+          <p class="eyebrow dark"><span></span> Deliberately lightweight</p>
+          <h2>Opening ten tabs should not create ten monitors.</h2>
+          <p>Service status checks happen once on the server and every browser tab reads the same cached answer. An online endpoint gets one tiny TCP connection every five minutes. Confirmed outages back off to fifteen minutes.</p>
+          <ul>
+            <li><span>✓</span> Duplicate host and port checks are combined</li>
+            <li><span>✓</span> First failures are confirmed before showing red</li>
+            <li><span>✓</span> A global switch stops all service checks instantly</li>
+            <li><span>✓</span> External websites are never monitored</li>
+          </ul>
+        </div>
+        <div class="cadence-card">
+          <p class="card-label">A quiet checking rhythm</p>
+          <div class="cadence-row"><span class="pulse good"></span><div><b>Healthy service</b><small>One connect-and-close every 5 minutes</small></div><strong>300s</strong></div>
+          <div class="cadence-line"></div>
+          <div class="cadence-row"><span class="pulse warn"></span><div><b>First failure</b><small>One confirmation before publishing an outage</small></div><strong>15s</strong></div>
+          <div class="cadence-line long"></div>
+          <div class="cadence-row"><span class="pulse down"></span><div><b>Confirmed down</b><small>Backs off while the service recovers</small></div><strong>900s</strong></div>
+          <p class="cadence-foot">Browser tabs only request the cached summary.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell install-section" id="install">
+      <div class="section-heading centered">
+        <p class="eyebrow"><span></span> Yours in about a minute</p>
+        <h2>Three steps. <em>No ceremony.</em></h2>
+        <p>Python 3 is the only requirement. Run it on a Raspberry Pi, home server, NAS, VM, or the computer already hosting your services.</p>
+      </div>
+      <div class="steps">
+        {steps.map(([number, title, body]) => (
+          <article><span>{number}</span><h3>{title}</h3><p>{body}</p></article>
+        ))}
+      </div>
+      <div class="terminal" role="region" aria-label="TabMonger installation commands">
+        <div class="terminal-bar"><i></i><i></i><i></i><span>terminal</span><button class="copy-button" data-copy aria-label="Copy installation commands">Copy</button></div>
+        <pre><code id="install-code"><span>git clone</span> https://github.com/truedezigner/tabmonger.git
+<span>cd</span> tabmonger
+<span>python3</span> server.py --host 0.0.0.0 --port 8787</code></pre>
+        <p>Then open <b>http://your-server-ip:8787</b></p>
+      </div>
+      <div class="install-actions">
+        <a class="button button-primary" href={downloadUrl}>Download ZIP</a>
+        <a class="button" href={`${githubUrl}#readme`}>Read the complete guide</a>
+      </div>
+      <aside class="safety-note"><b>Keep it private.</b> TabMonger is designed for your LAN or a protected private network. Do not expose your personal dashboard directly to the public internet without authentication.</aside>
+    </section>
+
+    <section class="section support-section shell" id="support">
+      <div class="support-card">
+        <div>
+          <p class="eyebrow"><span></span> Support indie software</p>
+          <h2>Built by a dev dad.<br />Backed by people who get it.</h2>
+          <p>TabMonger is free to download, run, change, and share. If it earns a permanent place in your browser, a one-time contribution helps fund the next release without turning useful features into a premium tier.</p>
+          <p class="support-small">Donations are optional and do not unlock anything.</p>
+        </div>
+        <div class="coffee-card">
+          <span class="coffee-steam" aria-hidden="true">⌁</span>
+          <h3>Back the next release</h3>
+          <p>Support the design, testing, documentation, and late-night polish behind TabMonger.</p>
+          {supportReady ? (
+            <a class="button coffee-cta" href={supportUrl} rel="noopener"><span class="cup-icon" aria-hidden="true"></span> Buy me a coffee</a>
+          ) : (
+            <span class="button coffee-cta is-pending" aria-disabled="true"><span class="cup-icon" aria-hidden="true"></span> Payments activating soon</span>
+          )}
+          <small>Secure one-time checkout is hosted and processed by Stripe.</small>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-grid">
+      <div><Logo /><p>A quiet home for everything you host.</p></div>
+      <div><b>Project</b><a href="#features">Features</a><a href="#install">Install</a><a href={githubUrl}>Source code</a></div>
+      <div><b>Principles</b><span>Private by default</span><span>No telemetry</span><a href="/privacy/">Privacy</a></div>
+      <div><b>Support</b>{supportReady ? <a href={supportUrl}>Buy me a coffee</a> : <span>Payments activating soon</span>}<a href="/support-policy/">Support policy</a><a href={`${githubUrl}/issues`}>Report an issue</a></div>
+    </div>
+    <div class="shell footer-bottom"><span>© {new Date().getFullYear()} TabMonger</span><span>Built small on purpose.</span></div>
+  </footer>
+
+  <script is:inline>
+    document.querySelector('[data-copy]')?.addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      const text = document.querySelector('#install-code')?.textContent?.trim();
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
+      button.textContent = 'Copied';
+      window.setTimeout(() => { button.textContent = 'Copy'; }, 1600);
+    });
+  </script>
+</Layout>

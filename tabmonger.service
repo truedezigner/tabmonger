@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/legend/projects/tabmonger
-ExecStart=/usr/bin/python3 /home/legend/projects/tabmonger/server.py --host 0.0.0.0 --port 8787
+WorkingDirectory=%h/projects/tabmonger
+ExecStart=/usr/bin/python3 %h/projects/tabmonger/server.py --host 0.0.0.0 --port 8787
 Restart=on-failure
 RestartSec=2
 

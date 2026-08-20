@@ -1,0 +1,10 @@
+{
+  "name": "TabMonger",
+  "short_name": "TabMonger",
+  "description": "A tiny, self-hosted new-tab dashboard.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c131d",
+  "theme_color": "#0c131d",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
