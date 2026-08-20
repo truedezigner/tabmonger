@@ -9,7 +9,9 @@ const chromiumDownloadUrl = `${githubUrl}/releases/latest/download/TabMonger-Chr
 const firefoxDownloadUrl = `${githubUrl}/releases/latest/download/TabMonger-Firefox-extension.zip`;
 const quickStartUrl = `${githubUrl}#quick-start`;
 const extensionsUrl = `${githubUrl}/tree/main/extensions`;
+const windowsSetupUrl = `${githubUrl}/blob/main/docs/INSTALL.md#windows`;
 const macSetupUrl = `${githubUrl}/blob/main/docs/INSTALL.md#macos`;
+const linuxSetupUrl = `${githubUrl}/blob/main/docs/INSTALL.md#linux`;
 const chromiumSetupUrl = `${githubUrl}/blob/main/extensions/README.md#chrome-or-brave`;
 const firefoxSetupUrl = `${githubUrl}/blob/main/extensions/README.md#firefox-development-install`;
 const supportFlag = import.meta.env.PUBLIC_STRIPE_SUPPORT_READY?.trim().toLowerCase();
@@ -48,6 +50,51 @@ const steps = [
   ['1', 'Download', 'Grab one ZIP from GitHub or clone the repository.'],
   ['2', 'Start', 'Run the small Python 3.10+ server on Linux, macOS, Windows, a NAS, or a home server.'],
   ['3', 'Connect', 'Open the LAN address from any computer on your network.']
+];
+
+const hostPlatforms = [
+  {
+    name: 'macOS',
+    slug: 'mac',
+    mark: 'MAC',
+    launcher: 'Start TabMonger.command',
+    command: 'Open “Start TabMonger.command”',
+    downloadLabel: 'Download for macOS',
+    setupUrl: macSetupUrl,
+    steps: [
+      ['Download + unzip', 'Move the extracted TabMonger folder somewhere you want to keep it.'],
+      ['Double-click the launcher', 'Open Start TabMonger.command. If blocked, right-click it in Finder and choose Open.'],
+      ['Use the printed address', 'Your local dashboard opens automatically; the same window shows its LAN address.']
+    ]
+  },
+  {
+    name: 'Windows',
+    slug: 'windows',
+    mark: 'WIN',
+    launcher: 'Start TabMonger.bat',
+    command: 'Start TabMonger.bat',
+    downloadLabel: 'Download for Windows',
+    setupUrl: windowsSetupUrl,
+    steps: [
+      ['Download + extract', 'Extract the complete ZIP to a normal folder before starting it.'],
+      ['Double-click the launcher', 'Open Start TabMonger.bat and allow Private networks only if Windows asks.'],
+      ['Use the printed address', 'Your local dashboard opens automatically; the same window shows its LAN address.']
+    ]
+  },
+  {
+    name: 'Linux',
+    slug: 'linux',
+    mark: '>_',
+    launcher: 'Start TabMonger.sh',
+    command: './Start\\ TabMonger.sh',
+    downloadLabel: 'Download for Linux',
+    setupUrl: linuxSetupUrl,
+    steps: [
+      ['Download + extract', 'Keep the extracted TabMonger folder in a normal location.'],
+      ['Run the launcher', 'Open Start TabMonger.sh and choose Run, or launch it from a terminal.'],
+      ['Use the printed address', 'Your local dashboard opens automatically; the same window shows its LAN address.']
+    ]
+  }
 ];
 ---
 <Layout>
@@ -190,51 +237,83 @@ const steps = [
           <p>Run TabMonger on one trusted computer, then add the small companion for each browser you want to open to your shared dashboard.</p>
         </div>
 
-        <div class="download-grid">
-          <article class="download-card app-download-card">
-            <div class="download-card-top">
-              <span class="platform-mark platform-mac" aria-hidden="true">TM</span>
-              <span class="download-kind">TabMonger host</span>
-            </div>
-            <h3>Run it on macOS</h3>
-            <p>Download the complete portable release and keep your dashboard and private data on your Mac.</p>
-            <div class="download-actions">
-              <a class="button button-primary download-button" href={downloadUrl}>Download for macOS <span aria-hidden="true">↓</span></a>
-              <a class="download-source-link" href={macSetupUrl}>Setup and source <span aria-hidden="true">→</span></a>
-            </div>
-            <small>Requires Python 3.10+. Unzip it, then open <code>Start TabMonger.command</code>.</small>
-          </article>
+        <section class="download-group" aria-labelledby="host-downloads-title" data-platform-downloads>
+          <div class="download-group-heading">
+            <p><span>01</span> Choose the computer that stays on</p>
+            <h3 id="host-downloads-title">Run it on macOS, Windows, or Linux.</h3>
+            <p>One portable ZIP includes all three launchers. Pick your system, start it once, and keep the small terminal window open. Python 3.10+ required.</p>
+          </div>
 
-          <article class="download-card">
-            <div class="download-card-top">
-              <span class="platform-mark platform-chromium" aria-hidden="true"><i></i></span>
-              <span class="download-kind">New-tab companion</span>
-            </div>
-            <h3>Chrome, Brave, and Edge</h3>
-            <p>Point every new tab at the TabMonger address already running on your trusted network.</p>
-            <div class="download-actions">
-              <a class="button download-button" href={chromiumDownloadUrl}>Download for Chrome / Brave / Edge <span aria-hidden="true">↓</span></a>
-              <a class="download-source-link" href={chromiumSetupUrl}>Source and setup <span aria-hidden="true">→</span></a>
-            </div>
-            <small>Unzip it, enable Developer mode, and load the extracted <code>TabMonger-Chromium-extension</code> folder.</small>
-          </article>
+          <div class="host-download-grid">
+            {hostPlatforms.map((platform) => (
+              <article class={`download-card host-download-card host-${platform.slug}`}>
+                <div class="download-card-top">
+                  <span class={`platform-mark platform-${platform.slug}`} aria-hidden="true">{platform.mark}</span>
+                  <span class="download-kind">TabMonger host · {platform.name}</span>
+                </div>
+                <h4>Run it on {platform.name}</h4>
+                <ol class="host-steps" aria-label={`Start TabMonger on ${platform.name} in three steps`}>
+                  {platform.steps.map(([title, body], index) => (
+                    <li>
+                      <span>{index + 1}</span>
+                      <p><b>{title}</b>{body}</p>
+                    </li>
+                  ))}
+                </ol>
+                <div class="launcher-terminal" aria-label={`${platform.name} launcher`}>
+                  <div><i></i><i></i><i></i><span>{platform.name.toLowerCase()}</span></div>
+                  <code>{platform.command}</code>
+                  <p><span aria-hidden="true">✓</span> Opens locally + prints your LAN address</p>
+                </div>
+                <div class="download-actions">
+                  <a class="button button-primary download-button" href={downloadUrl}>{platform.downloadLabel} <span aria-hidden="true">↓</span></a>
+                  <a class="download-source-link" href={platform.setupUrl}>{platform.name} setup guide <span aria-hidden="true">→</span></a>
+                </div>
+                <small>Portable source app · Python 3.10+ · Launcher: <code>{platform.launcher}</code></small>
+              </article>
+            ))}
+          </div>
+        </section>
 
-          <article class="download-card">
-            <div class="download-card-top">
-              <span class="platform-mark platform-firefox" aria-hidden="true">F</span>
-              <span class="download-kind">New-tab companion</span>
-            </div>
-            <h3>Firefox</h3>
-            <p>Use the same lightweight companion without sending your dashboard address to a hosted service.</p>
-            <div class="download-actions">
-              <a class="button download-button" href={firefoxDownloadUrl}>Download Firefox ZIP <span aria-hidden="true">↓</span></a>
-              <a class="download-source-link" href={firefoxSetupUrl}>Source and setup <span aria-hidden="true">→</span></a>
-            </div>
-            <small>Standard Firefox installation is temporary until Mozilla signing; Firefox removes the manually loaded add-on after restart.</small>
-          </article>
-        </div>
+        <section class="download-group browser-download-group" aria-labelledby="browser-downloads-title" data-browser-downloads>
+          <div class="download-group-heading">
+            <p><span>02</span> Then choose your browser</p>
+            <h3 id="browser-downloads-title">Make every new tab TabMonger.</h3>
+            <p>Install the matching companion, enter the LAN address once, and every new tab opens the same dashboard.</p>
+          </div>
 
-        <p class="downloads-note">All three downloads come from the public GitHub release. The companion extensions contain no analytics, remote code, accounts, or payment code.</p>
+          <div class="browser-download-grid">
+            <article class="download-card browser-download-card">
+              <div class="download-card-top">
+                <span class="platform-mark platform-chromium" aria-hidden="true"><i></i></span>
+                <span class="download-kind">New-tab companion</span>
+              </div>
+              <h4>Chrome, Brave, and Edge</h4>
+              <p>Point every new tab at the TabMonger address already running on your trusted network.</p>
+              <div class="download-actions">
+                <a class="button download-button" href={chromiumDownloadUrl}>Download for Chrome / Brave / Edge <span aria-hidden="true">↓</span></a>
+                <a class="download-source-link" href={chromiumSetupUrl}>Source and setup <span aria-hidden="true">→</span></a>
+              </div>
+              <small>Unzip it, enable Developer mode, and load the extracted <code>TabMonger-Chromium-extension</code> folder.</small>
+            </article>
+
+            <article class="download-card browser-download-card">
+              <div class="download-card-top">
+                <span class="platform-mark platform-firefox" aria-hidden="true">F</span>
+                <span class="download-kind">New-tab companion</span>
+              </div>
+              <h4>Firefox</h4>
+              <p>Use the same lightweight companion without sending your dashboard address to a hosted service.</p>
+              <div class="download-actions">
+                <a class="button download-button" href={firefoxDownloadUrl}>Download Firefox ZIP <span aria-hidden="true">↓</span></a>
+                <a class="download-source-link" href={firefoxSetupUrl}>Source and setup <span aria-hidden="true">→</span></a>
+              </div>
+              <small>Standard Firefox installation is temporary until Mozilla signing; Firefox removes the manually loaded add-on after restart.</small>
+            </article>
+          </div>
+        </section>
+
+        <p class="downloads-note">The three app buttons download the same public portable ZIP. Browser companions are separate downloads and contain no analytics, remote code, accounts, or payment code.</p>
       </div>
     </section>
 

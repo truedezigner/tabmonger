@@ -12,6 +12,11 @@ const requiredReleaseAssets = [
   `${releaseBaseUrl}/TabMonger-Chromium-extension.zip`,
   `${releaseBaseUrl}/TabMonger-Firefox-extension.zip`,
 ];
+const requiredSetupLinks = [
+  'https://github.com/truedezigner/tabmonger/blob/main/docs/INSTALL.md#windows',
+  'https://github.com/truedezigner/tabmonger/blob/main/docs/INSTALL.md#macos',
+  'https://github.com/truedezigner/tabmonger/blob/main/docs/INSTALL.md#linux',
+];
 
 function redacted(value = '') {
   return value.replace(/https:\/\/buy\.stripe\.com\/[^\s"']+/g, '[STRIPE_URL_REDACTED]');
@@ -49,10 +54,31 @@ function assertReleaseDownloads(html, label) {
   }
   for (const disclosure of [
     'Python 3.10+',
+    'Run it on macOS',
+    'Run it on Windows',
+    'Run it on Linux',
     'Start TabMonger.command',
+    'Start TabMonger.bat',
+    'Start TabMonger.sh',
+    'Private networks only',
     'Standard Firefox installation is temporary until Mozilla signing',
   ]) {
     if (!html.includes(disclosure)) throw new Error(`${label}: missing download disclosure: ${disclosure}.`);
+  }
+  for (const setupUrl of requiredSetupLinks) {
+    if (!html.includes(`href="${setupUrl}"`)) {
+      throw new Error(`${label}: missing platform setup guide ${setupUrl.split('#').at(-1)}.`);
+    }
+  }
+  const platformDownloads = html.indexOf('data-platform-downloads');
+  const browserDownloads = html.indexOf('data-browser-downloads');
+  const chromiumCard = html.indexOf('Chrome, Brave, and Edge', browserDownloads);
+  const firefoxCard = html.indexOf('>Firefox<', browserDownloads);
+  if (platformDownloads < 0 || browserDownloads <= platformDownloads) {
+    throw new Error(`${label}: browser companions must follow all platform launchers.`);
+  }
+  if (chromiumCard <= browserDownloads || firefoxCard <= chromiumCard) {
+    throw new Error(`${label}: browser companion cards are missing or out of order.`);
   }
 }
 
@@ -102,4 +128,4 @@ for (const [label, value] of [
   }
 }
 
-console.log('Site smoke check passed: release downloads, setup disclosures, preferred and legacy Stripe links, 3 CTAs, pending state, and invalid-host rejection.');
+console.log('Site smoke check passed: three platform launchers, browser companion ordering, release downloads, setup disclosures, preferred and legacy Stripe links, 3 CTAs, pending state, and invalid-host rejection.');
