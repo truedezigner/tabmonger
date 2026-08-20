@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07110f">
+  <title>TabMonger</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/search-polish.css">
+  <link rel="stylesheet" href="/glance.css">
+  <link rel="stylesheet" href="/ui-polish.css">
+  <style id="custom-style"></style>
+</head>
+<body>
+  <div id="background"></div><div id="shade"></div>
+  <header class="topbar">
+    <button class="brand" data-action="home" aria-label="Home"><span class="brand-mark">TM</span><span><b id="brand-title">TabMonger</b><small id="brand-subtitle"></small></span></button>
+    <div class="header-actions">
+      <button class="icon-button" data-action="toggle-all" title="Show pinned or all links"><span id="mode-label">Pinned</span></button>
+      <button class="icon-button" data-action="add" title="Add link">＋</button>
+      <button class="icon-button" data-action="manage" title="Manage">☷</button>
+      <button class="icon-button" data-action="settings" title="Settings">⚙</button>
+    </div>
+  </header>
+  <main>
+    <section id="glance-strip" class="glance-strip" aria-label="Today, weather, and local service status">
+      <div class="glance-date"><b id="glance-day">Today</b><span id="glance-date">Loading date</span></div>
+      <span class="glance-rule" aria-hidden="true"></span>
+      <div id="glance-weather" class="glance-weather" hidden><span id="weather-icon" class="weather-icon" aria-hidden="true">◌</span><b id="weather-temp">--°</b><span id="weather-label">Weather</span></div>
+      <span id="weather-rule" class="glance-rule" aria-hidden="true" hidden></span>
+      <button id="glance-health" type="button" class="glance-health checking" title="Private LAN services are checked centrally every five minutes"><span class="health-dot" aria-hidden="true"></span><span id="health-label">Checking local services</span></button>
+    </section>
+    <section id="search-wrap" class="search-wrap">
+      <div class="search-shell"><form id="search-form"><div class="provider-picker"><input id="provider" type="hidden" value="searxng"><button id="provider-trigger" type="button" aria-haspopup="listbox" aria-expanded="false"><span class="provider-orb">S</span><span id="provider-label">SearXNG</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button><div id="provider-menu" class="provider-menu" role="listbox" hidden><button type="button" data-provider="searxng" role="option"><span class="provider-orb">S</span><span><b>SearXNG</b><small>Private web search</small></span><span class="provider-check">✓</span></button><button type="button" data-provider="tiles" role="option"><span class="provider-orb local">L</span><span><b>My links</b><small>Search this dashboard</small></span><span class="provider-check">✓</span></button></div></div><input id="search" autocomplete="off" placeholder="Search the web or open a local link…"><button id="search-submit">Search web</button></form><div id="search-suggestions" class="search-suggestions" role="listbox" hidden></div></div>
+    </section>
+    <nav id="tagbar" class="tagbar"></nav>
+    <section id="grid" class="grid" aria-live="polite"></section>
+    <div id="empty" class="empty" hidden><b>No links here.</b><span>Change the filter or add one.</span></div>
+  </main>
+
+  <dialog id="item-dialog"><form id="item-form" class="panel"><header><div><p class="eyebrow">LINK</p><h2 id="item-heading">Add link</h2></div><button type="button" class="close" data-close>×</button></header><input type="hidden" name="id"><div class="form-grid"><label>Title<input name="title" required maxlength="120"></label><label>URL<input name="url" required placeholder="https://…"></label><button type="button" class="ghost wide" data-action="discover">Fetch title, description, and icon</button><label class="wide">Description<textarea name="description" rows="3"></textarea></label><label>Tile color<input name="color" type="color" value="#17211f"></label><label>Icon URL<input name="icon" placeholder="https://… or /assets/…"></label><label class="wide file-label">Or upload icon<input id="icon-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"></label><label class="wide">Tags<input name="tags" placeholder="Servers, Media, Work"></label><label class="check wide"><input name="pinned" type="checkbox" checked> Show on pinned dashboard</label><label class="check wide"><input name="monitor" type="checkbox" checked> Monitor this link when it points to a private LAN service</label></div><footer><button type="button" class="ghost" data-close>Cancel</button><button class="primary">Save link</button></footer></form></dialog>
+
+  <dialog id="manage-dialog"><section class="panel panel-wide"><header><div><p class="eyebrow">LIBRARY</p><h2>Manage links</h2></div><button class="close" data-close>×</button></header><div class="manage-tabs"><button class="active" data-library="active">Active</button><button data-library="trash">Trash</button><button data-library="tags">Tags</button></div><div id="library-list" class="library-list"></div><footer><button class="ghost" data-close>Done</button></footer></section></dialog>
+
+  <dialog id="settings-dialog"><form id="settings-form" class="panel panel-wide"><header><div><p class="eyebrow">CONTROL ROOM</p><h2>Settings</h2></div><button type="button" class="close" data-close>×</button></header><div class="settings-tabs"><button type="button" class="active" data-tab="appearance">Appearance</button><button type="button" data-tab="behavior">Behavior</button><button type="button" data-tab="transfer">Import / export</button><button type="button" data-tab="advanced">Advanced</button></div><div class="tab-pane active" data-pane="appearance"><div class="form-grid"><label>Dashboard name<input name="title"></label><label>Subtitle<input name="subtitle"></label><label>Theme<select name="theme"><option>dark</option><option>light</option><option>system</option></select></label><label>Tile size<select name="tile_size"><option value="small">Compact</option><option value="medium">Comfortable</option><option value="large">Large</option></select></label><label>Background color<input name="background_color" type="color"></label><label>Overlay strength<input name="background_overlay" type="range" min="0" max="0.85" step="0.01"></label><label class="wide">Background image URL<input name="background_image" placeholder="https://… or upload below"></label><label class="wide file-label">Upload background<input id="background-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button type="button" class="ghost wide" data-action="clear-background">Clear background image</button></div></div><div class="tab-pane" data-pane="behavior"><div class="form-grid"><label>Default view<select name="show_mode"><option value="pinned">Pinned only</option><option value="all">All links</option></select></label><label>Default search<select name="search_provider"><option value="searxng">SearXNG web search</option><option value="tiles">Search my links</option></select></label><label>SearXNG URL<input name="searxng_url" placeholder="http://docker-host:port"></label><label>Open links<select name="open_target"><option value="same">Same tab</option><option value="new">New tab</option></select></label><label class="check"><input name="homepage_search" type="checkbox"> Show search bar</label><label class="check"><input name="show_glance" type="checkbox"> Show date, weather, and health</label><label class="check"><input name="monitor_services" type="checkbox"> Quietly monitor private LAN links</label><label class="check"><input name="weather_enabled" type="checkbox"> Show cached weather</label><label>Weather location<input name="weather_location" placeholder="Leave blank for automatic"></label><label>Temperature units<select name="weather_units"><option value="f">Fahrenheit</option><option value="c">Celsius</option></select></label></div></div><div class="tab-pane" data-pane="transfer"><div class="transfer-grid"><article><h3>Full backup</h3><p>Links, order, pin state, tags, settings, icons, and background.</p><button type="button" class="primary" data-action="export-json">Export JSON</button></article><article><h3>Import backup</h3><p>Imports TabMonger or Heimdall JSON. Choose merge or replace.</p><input id="json-import" type="file" accept="application/json,.json"><div><button type="button" class="ghost" data-action="import-merge">Merge</button><button type="button" class="danger" data-action="import-replace">Replace</button></div></article><article><h3>Browser bookmarks</h3><p>Portable Netscape bookmark HTML.</p><button type="button" class="ghost" data-action="export-html">Export HTML</button><input id="html-import" type="file" accept="text/html,.html"><button type="button" class="ghost" data-action="import-html">Import HTML</button></article></div><p id="transfer-status" class="status"></p></div><div class="tab-pane" data-pane="advanced"><label>Custom CSS<textarea name="custom_css" rows="8" spellcheck="false"></textarea></label><label>Custom JavaScript<textarea name="custom_js" rows="8" spellcheck="false"></textarea></label><p class="warning">Custom JavaScript runs in this page. Only paste code you trust.</p></div><footer><button type="button" class="ghost" data-close>Cancel</button><button class="primary">Save settings</button></footer></form></dialog>
+  <div id="toast" role="status"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

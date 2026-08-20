@@ -1,0 +1,234 @@
+[hidden] {
+  display: none !important;
+}
+
+.glance-strip {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 34px;
+  margin: 2px auto 8px;
+  padding: 6px 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(190, 204, 235, .13);
+  border-radius: 999px;
+  color: #bac5da;
+  background: rgba(10, 16, 25, .56);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .13);
+  backdrop-filter: blur(12px);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.glance-date,
+.glance-weather,
+.glance-health {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+button.glance-health {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.glance-health:hover,
+button.glance-health.active {
+  color: #fff;
+}
+
+.glance-date b,
+.glance-weather b {
+  color: #f1f4fb;
+  font-size: 12px;
+}
+
+.glance-rule {
+  width: 1px;
+  height: 15px;
+  flex: none;
+  background: rgba(190, 204, 235, .17);
+}
+
+.weather-icon {
+  width: 16px;
+  color: #d4def3;
+  font-size: 15px;
+  text-align: center;
+}
+
+.health-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: #8492ad;
+  box-shadow: 0 0 0 3px rgba(132, 146, 173, .12);
+}
+
+.glance-health.up .health-dot {
+  background: #8da9e8;
+  box-shadow: 0 0 0 3px rgba(141, 169, 232, .13);
+}
+
+.glance-health.down {
+  color: #ffc1bd;
+}
+
+.glance-health.down .health-dot {
+  background: #ff746d;
+  box-shadow: 0 0 0 3px rgba(255, 116, 109, .15);
+}
+
+.search-wrap {
+  margin-top: 12px;
+}
+
+.empty-symbol {
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 4px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(190, 204, 235, .16);
+  border-radius: 14px;
+  color: #aebde0;
+  background: rgba(13, 20, 31, .62);
+  font-size: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
+}
+
+.form-grid label.service-toggle {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(9, 16, 24, .38);
+}
+
+.service-toggle > span {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.service-toggle b,
+.service-toggle small {
+  display: block;
+}
+
+.service-toggle b {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.service-toggle small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.form-grid .service-toggle input[type="checkbox"] {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  border: 1px solid rgba(160, 176, 207, .28);
+  border-radius: 999px;
+  background: #252e3d;
+  cursor: pointer;
+  transition: background .16s, border-color .16s;
+}
+
+.form-grid .service-toggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #b9c4d9;
+  transition: transform .16s, background .16s;
+}
+
+.form-grid .service-toggle input[type="checkbox"]:checked {
+  border-color: #7891c8;
+  background: #50658f;
+}
+
+.form-grid .service-toggle input[type="checkbox"]:checked::after {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+.tile[data-health="up"]::after,
+.tile[data-health="down"]::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  bottom: 12px;
+  z-index: 2;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.tile[data-health="up"]::after {
+  background: rgba(164, 187, 237, .72);
+  box-shadow: 0 0 0 3px rgba(164, 187, 237, .08);
+}
+
+.tile[data-health="down"]::after {
+  background: #ff746d;
+  box-shadow: 0 0 0 3px rgba(255, 116, 109, .14);
+}
+
+.tile-health-detail {
+  display: block;
+  margin-top: 7px;
+  color: #ffaaa5;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+body.light .glance-strip {
+  color: #526078;
+  border-color: rgba(45, 61, 91, .15);
+  background: rgba(248, 250, 255, .72);
+}
+
+body.light .glance-date b,
+body.light .glance-weather b {
+  color: #172031;
+}
+
+@media (max-width: 700px) {
+  .glance-strip {
+    gap: 7px;
+    margin-top: 8px;
+    padding: 6px 9px;
+    font-size: 10px;
+  }
+
+  #weather-label,
+  .glance-date span {
+    display: none;
+  }
+}

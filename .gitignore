@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+
+# Local runtime data
+data/
+assets/uploads/
+*.db
+*.db-shm
+*.db-wal
+
+# Local environments and secrets
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Editor, OS, logs, and caches
+.DS_Store
+.idea/
+.vscode/
+*.log
+.cache/
