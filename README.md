@@ -1,7 +1,5 @@
 # TabMonger
 
-> Working name. The recommended final name is **Tabmancer** — see [PROJECT-NOTES.md](PROJECT-NOTES.md#name-and-brand-direction).
-
 An extremely lightweight personal launch dashboard and Heimdall replacement. It is one Python standard-library process, SQLite, and plain HTML/CSS/JavaScript: no package installation, framework, container, build step, telemetry, or external CDN.
 
 The interface uses one consistent cool blue-gray visual system across search, dialogs, settings, forms, tabs, controls, and status elements. Individual service tiles retain their own brand colors.
@@ -81,6 +79,5 @@ The original Heimdall migration copied links, descriptions, icons, pin state, or
 
 ## Documentation
 
-- [PROJECT-NOTES.md](PROJECT-NOTES.md) — architecture, operation, design decisions, backups, and the proposed final brand
+- [PROJECT-NOTES.md](PROJECT-NOTES.md) — architecture, operation, design decisions, backups, and brand direction
 - [CHANGELOG.md](CHANGELOG.md) — completed product milestones
-

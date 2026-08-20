@@ -32,7 +32,6 @@
 
 ### Brand status
 
-- `TabMonger` remains the live working name
-- `Tabmancer` is the documented recommended final name
-- Final logo creation is intentionally waiting for explicit name approval
-
+- `TabMonger` is the finalized product name
+- Private GitHub repository reserved as `truedezigner/tabmonger`
+- Final logo and favicon creation is the remaining brand task
