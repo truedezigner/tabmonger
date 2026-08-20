@@ -5,6 +5,7 @@ import http.client
 import importlib.util
 import json
 import os
+import sqlite3
 import stat
 import tempfile
 import threading
@@ -84,6 +85,55 @@ class DataDirectoryTests(unittest.TestCase):
                 self.assertEqual(settings["monitor_services"], "false")
                 self.assertEqual(settings["weather_enabled"], "false")
                 self.assertEqual(settings["background_color"], "#0c131d")
+        finally:
+            server.configure_runtime(original_data, original_uploads)
+
+    def test_existing_database_gets_tile_appearance_columns_without_data_loss(self) -> None:
+        original_data, original_uploads = server.DATA, server.UPLOADS
+        try:
+            with tempfile.TemporaryDirectory() as temporary:
+                data = Path(temporary) / "state"
+                data.mkdir()
+                server.configure_runtime(data)
+                with sqlite3.connect(server.DB_PATH) as database:
+                    database.execute("PRAGMA foreign_keys=ON")
+                    database.execute(
+                        """CREATE TABLE items (
+                        id TEXT PRIMARY KEY,title TEXT NOT NULL,url TEXT NOT NULL,
+                        description TEXT NOT NULL DEFAULT '',color TEXT NOT NULL DEFAULT '#17211f',
+                        icon TEXT NOT NULL DEFAULT '',pinned INTEGER NOT NULL DEFAULT 1,
+                        monitor INTEGER NOT NULL DEFAULT 1,position INTEGER NOT NULL DEFAULT 0,
+                        deleted_at TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)"""
+                    )
+                    database.execute(
+                        "INSERT INTO items VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                        ("old-item-key", "Kept link", "https://example.com", "", "#fff", "", 1, 1, 0, None, "now", "now"),
+                    )
+                    database.execute(
+                        """CREATE TABLE tags (
+                        id TEXT PRIMARY KEY,name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                        color TEXT NOT NULL DEFAULT '#58d6a3',position INTEGER NOT NULL DEFAULT 0)"""
+                    )
+                    database.execute(
+                        """CREATE TABLE item_tags (
+                        item_id TEXT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+                        tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+                        PRIMARY KEY(item_id,tag_id))"""
+                    )
+                    database.execute("INSERT INTO tags VALUES(?,?,?,?)", ("old-tag-key", "Kept tag", "#58d6a3", 0))
+                    database.execute("INSERT INTO item_tags VALUES(?,?)", ("old-item-key", "old-tag-key"))
+                server.init_db()
+                with server.connect() as database:
+                    item = dict(database.execute("SELECT * FROM items WHERE title='Kept link'").fetchone())
+                    tag = dict(database.execute("SELECT * FROM tags WHERE name='Kept tag'").fetchone())
+                    relationship = database.execute("SELECT item_id,tag_id FROM item_tags").fetchone()
+                    self.assertEqual(list(database.execute("PRAGMA foreign_key_check")), [])
+                self.assertEqual(item["title"], "Kept link")
+                self.assertRegex(item["id"], r"^tm-[0-9a-f]{12}$")
+                self.assertRegex(tag["id"], r"^tag-[0-9a-f]{12}$")
+                self.assertEqual(tuple(relationship), (item["id"], tag["id"]))
+                self.assertEqual(item["tile_dim"], 0)
+                self.assertEqual(item["icon_invert"], 0)
         finally:
             server.configure_runtime(original_data, original_uploads)
 
@@ -225,6 +275,70 @@ class BrowserRequestGuardTests(unittest.TestCase):
             "GET", "/api/state", headers={"Host": f"automation.example:{self.port}"}
         )
         self.assertEqual(status, 403)
+
+    def test_tile_appearance_persists_through_edit_export_and_import(self) -> None:
+        status, item = self.request(
+            "POST",
+            "/api/items",
+            {"title": "Bright tile", "url": "https://example.com", "color": "#ffffff", "icon": "https://example.com/icon.png"},
+        )
+        self.assertEqual(status, 201)
+        self.assertEqual((item["tile_dim"], item["icon_invert"]), (0, 0))
+
+        status, result = self.request(
+            "PATCH",
+            f"/api/items/{item['id']}",
+            {"tile_dim": 67, "icon_invert": 100},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(result["fields"], ["icon_invert", "tile_dim"])
+
+        status, edited = self.request(
+            "PUT",
+            f"/api/items/{item['id']}",
+            {"title": "Bright tile renamed", "url": "https://example.com", "color": "#ffffff", "icon": "https://example.com/icon.png"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual((edited["tile_dim"], edited["icon_invert"]), (67, 100))
+
+        status, exported = self.request("GET", "/api/export")
+        self.assertEqual(status, 200)
+        exported_item = next(entry for entry in exported["items"] if entry["id"] == item["id"])
+        self.assertEqual((exported_item["tile_dim"], exported_item["icon_invert"]), (67, 100))
+
+        status, imported = self.request("POST", "/api/import", {"data": exported, "replace": True})
+        self.assertEqual(status, 200)
+        self.assertEqual(imported["failed"], [])
+        status, restored = self.request("GET", "/api/state")
+        restored_item = next(entry for entry in restored["items"] if entry["title"] == "Bright tile renamed")
+        self.assertEqual((restored_item["tile_dim"], restored_item["icon_invert"]), (67, 100))
+
+        status, error = self.request("PATCH", f"/api/items/{restored_item['id']}", {"tile_dim": "not-a-number"})
+        self.assertEqual(status, 400)
+        self.assertIn("percentages", error["error"])
+
+    def test_older_list_import_gets_native_internal_ids(self) -> None:
+        status, imported = self.request(
+            "POST",
+            "/api/import",
+            {
+                "data": [
+                    {
+                        "id": "old-dashboard-2",
+                        "title": "Older dashboard link",
+                        "url": "https://example.com",
+                        "appdescription": "Preserved compatibility description",
+                    }
+                ]
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(imported["imported"], 1)
+        status, current = self.request("GET", "/api/state")
+        self.assertEqual(status, 200)
+        item = next(entry for entry in current["items"] if entry["title"] == "Older dashboard link")
+        self.assertRegex(item["id"], r"^tm-[0-9a-f]{12}$")
+        self.assertEqual(item["description"], "Preserved compatibility description")
 
     def test_external_upload_is_served_and_included_in_portable_export(self) -> None:
         image_data = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"

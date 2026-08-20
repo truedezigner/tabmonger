@@ -51,7 +51,7 @@ Using one stable port and a DHCP reservation or local hostname keeps the saved e
 
 ## First run and private data
 
-A clean install begins empty, with outbound weather and service checks off. The first-run screen offers three paths: add a link, import bookmarks or a TabMonger/Heimdall backup, or connect a new-tab extension.
+A clean install begins empty, with outbound weather and service checks off. The first-run screen offers three paths: add a link, import bookmarks or an older dashboard backup, or connect a new-tab extension.
 
 Private state is stored outside the downloaded application by default:
 
@@ -67,6 +67,7 @@ The folder contains the SQLite database, uploaded icons/backgrounds, and seven r
 
 - Add, edit, auto-discover, pin, drag-reorder, trash, restore, and permanently delete links
 - Custom icon URL or upload with an initials fallback
+- Per-tile darkening and icon inversion with automatic text contrast
 - Tags, filtering, tag management, and three tile densities
 - Same-tab or new-tab launching
 - Context-aware first-run and empty states
@@ -93,7 +94,7 @@ The folder contains the SQLite database, uploaded icons/backgrounds, and seven r
 - Background URL/upload, color, and overlay controls
 - Dark, light, and system themes
 - Full JSON import/export with order, tags, settings, local icons, and background
-- Heimdall JSON and browser-bookmark HTML import
+- Legacy-dashboard JSON and browser-bookmark HTML import
 - Automatic seven-day portable backup rotation
 - Trusted local custom CSS and JavaScript
 - Chrome/Edge and Firefox new-tab companion source

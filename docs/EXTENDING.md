@@ -7,7 +7,7 @@ TabMonger offers three deliberately simple extension paths. None of them sends p
 Most installations only need the built-in controls:
 
 - links, icons, tags, pinning, and ordering;
-- browser-bookmark and Heimdall imports;
+- browser-bookmark and legacy-dashboard imports;
 - background, theme, and tile-density settings;
 - a private SearXNG endpoint;
 - per-link and global service monitoring controls.

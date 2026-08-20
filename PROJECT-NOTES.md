@@ -18,7 +18,7 @@ The official public site is `tabmonger.com`; its Astro source and deployment fil
 - `extensions/` — build-free Chrome/Edge and Firefox Manifest V3 new-tab companions
 - `packaging/build_release.py` — private-state-free portable archive and checksum builder
 
-The shipped dashboard uses no third-party Python runtime package, JavaScript framework, external icon font, frontend build, or CDN. Python 3.10 or newer is required. The optional historical live-Heimdall migration helper is not included in the portable runtime package.
+The shipped dashboard uses no third-party Python runtime package, JavaScript framework, external icon font, frontend build, or CDN. Python 3.10 or newer is required. One-time importer-specific tooling is not included in the portable runtime package.
 
 ## Storage and upgrade model
 

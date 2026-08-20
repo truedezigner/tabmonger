@@ -27,7 +27,7 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT / "public"
-APP_VERSION = "1.1.1"
+APP_VERSION = "1.2.0"
 LEGACY_DATA = ROOT / "data"
 LEGACY_UPLOADS = ROOT / "assets" / "uploads"
 MAX_BODY = 24 * 1024 * 1024
@@ -199,6 +199,8 @@ def init_db() -> None:
               description TEXT NOT NULL DEFAULT '',
               color TEXT NOT NULL DEFAULT '#17211f',
               icon TEXT NOT NULL DEFAULT '',
+              tile_dim INTEGER NOT NULL DEFAULT 0,
+              icon_invert INTEGER NOT NULL DEFAULT 0,
               pinned INTEGER NOT NULL DEFAULT 1,
               monitor INTEGER NOT NULL DEFAULT 1,
               position INTEGER NOT NULL DEFAULT 0,
@@ -230,6 +232,11 @@ def init_db() -> None:
         columns = {row["name"] for row in db.execute("PRAGMA table_info(items)")}
         if "monitor" not in columns:
             db.execute("ALTER TABLE items ADD COLUMN monitor INTEGER NOT NULL DEFAULT 1")
+        if "tile_dim" not in columns:
+            db.execute("ALTER TABLE items ADD COLUMN tile_dim INTEGER NOT NULL DEFAULT 0")
+        if "icon_invert" not in columns:
+            db.execute("ALTER TABLE items ADD COLUMN icon_invert INTEGER NOT NULL DEFAULT 0")
+        normalize_internal_ids(db)
 
 
 def now() -> str:
@@ -431,9 +438,64 @@ def snapshot(include_assets: bool = False) -> dict:
     return result
 
 
-def safe_id(value: object = None) -> str:
+def safe_id(value: object = None, prefix: str = "tm") -> str:
     text = str(value or "").strip()
-    return text if re.fullmatch(r"[A-Za-z0-9_-]{1,80}", text) else uuid.uuid4().hex[:12]
+    if re.fullmatch(rf"(?:{re.escape(prefix)}-)?[0-9a-f]{{12}}", text):
+        return text
+    return f"{prefix}-{uuid.uuid4().hex[:12]}"
+
+
+def unique_id(db: sqlite3.Connection, table: str, prefix: str) -> str:
+    while True:
+        candidate = safe_id(prefix=prefix)
+        if not db.execute(f"SELECT 1 FROM {table} WHERE id=?", (candidate,)).fetchone():
+            return candidate
+
+
+def normalize_internal_ids(db: sqlite3.Connection) -> None:
+    """Replace importer-era internal keys with neutral TabMonger identifiers."""
+    original_item_count = db.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+    item_columns = [row["name"] for row in db.execute("PRAGMA table_info(items)")]
+    quoted_item_columns = ",".join(f'"{name}"' for name in item_columns)
+    item_placeholders = ",".join("?" for _ in item_columns)
+    for row in list(db.execute("SELECT * FROM items ORDER BY position,id")):
+        if safe_id(row["id"]) == row["id"]:
+            continue
+        replacement = unique_id(db, "items", "tm")
+        values = [replacement if name == "id" else row[name] for name in item_columns]
+        db.execute(
+            f"INSERT INTO items({quoted_item_columns}) VALUES({item_placeholders})",
+            values,
+        )
+        db.execute("UPDATE item_tags SET item_id=? WHERE item_id=?", (replacement, row["id"]))
+        db.execute("DELETE FROM items WHERE id=?", (row["id"],))
+
+    for row in list(db.execute("SELECT * FROM tags ORDER BY position,id")):
+        if safe_id(row["id"], "tag") == row["id"]:
+            continue
+        replacement = unique_id(db, "tags", "tag")
+        temporary_name = f"__tabmonger_tag_migration_{uuid.uuid4().hex}"
+        db.execute(
+            "INSERT INTO tags(id,name,color,position) VALUES(?,?,?,?)",
+            (replacement, temporary_name, row["color"], row["position"]),
+        )
+        db.execute("UPDATE item_tags SET tag_id=? WHERE tag_id=?", (replacement, row["id"]))
+        db.execute("DELETE FROM tags WHERE id=?", (row["id"],))
+        db.execute("UPDATE tags SET name=? WHERE id=?", (row["name"], replacement))
+
+    db.execute(
+        """UPDATE items SET url=?,description=?
+           WHERE deleted_at IS NOT NULL AND url LIKE 'http://invalid.local/%'""",
+        (
+            "http://invalid.local/unavailable-from-legacy-trash",
+            "Imported from a legacy dashboard trash; the deleted URL was unavailable.",
+        ),
+    )
+    if db.execute("SELECT COUNT(*) FROM items").fetchone()[0] != original_item_count:
+        raise RuntimeError("Internal ID migration changed the item count")
+    violations = list(db.execute("PRAGMA foreign_key_check"))
+    if violations:
+        raise RuntimeError("Internal ID migration failed its relationship check")
 
 
 def normalize_url(value: object) -> str:
@@ -444,6 +506,17 @@ def normalize_url(value: object) -> str:
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise ValueError("Use a valid http:// or https:// URL")
     return parsed.geturl()
+
+
+def appearance_level(value: object, default: int, maximum: int = 100) -> int:
+    """Return a safe whole-number percentage for a per-link visual setting."""
+    if value is None:
+        return default
+    try:
+        level = round(float(value))
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("Tile appearance values must be percentages") from None
+    return max(0, min(maximum, level))
 
 
 def save_data_url(value: str, prefix: str) -> str:
@@ -505,33 +578,39 @@ def upsert_item(payload: dict, item_id: str | None = None) -> dict:
     stamp = now()
     with LOCK, connect() as db:
         if item_id:
-            exists = db.execute("SELECT id FROM items WHERE id=?", (item_id,)).fetchone()
+            exists = db.execute("SELECT * FROM items WHERE id=?", (item_id,)).fetchone()
             if not exists:
                 raise KeyError("Item not found")
+            tile_dim = appearance_level(payload.get("tile_dim"), exists["tile_dim"], 90)
+            icon_invert = appearance_level(payload.get("icon_invert"), exists["icon_invert"])
             db.execute(
-                """UPDATE items SET title=?,url=?,description=?,color=?,icon=?,pinned=?,monitor=?,updated_at=? WHERE id=?""",
+                """UPDATE items SET title=?,url=?,description=?,color=?,icon=?,tile_dim=?,icon_invert=?,
+                   pinned=?,monitor=?,updated_at=? WHERE id=?""",
                 (title, url, str(payload.get("description") or payload.get("appdescription") or ""), color, icon,
-                 1 if payload.get("pinned", True) else 0, 1 if payload.get("monitor", True) else 0, stamp, item_id),
+                 tile_dim, icon_invert, 1 if payload.get("pinned", True) else 0,
+                 1 if payload.get("monitor", True) else 0, stamp, item_id),
             )
         else:
             item_id = safe_id(payload.get("id"))
             while db.execute("SELECT 1 FROM items WHERE id=?", (item_id,)).fetchone():
                 item_id = safe_id()
             position = db.execute("SELECT COALESCE(MAX(position),-1)+1 FROM items").fetchone()[0]
+            tile_dim = appearance_level(payload.get("tile_dim"), 0, 90)
+            icon_invert = appearance_level(payload.get("icon_invert"), 0)
             db.execute(
-                """INSERT INTO items(id,title,url,description,color,icon,pinned,monitor,position,deleted_at,created_at,updated_at)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                """INSERT INTO items(id,title,url,description,color,icon,tile_dim,icon_invert,pinned,
+                   monitor,position,deleted_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (item_id, title, url, str(payload.get("description") or payload.get("appdescription") or ""), color, icon,
-                 1 if payload.get("pinned", True) else 0, 1 if payload.get("monitor", True) else 0,
-                 position, payload.get("deleted_at"), stamp, stamp),
+                 tile_dim, icon_invert, 1 if payload.get("pinned", True) else 0,
+                 1 if payload.get("monitor", True) else 0, position, payload.get("deleted_at"), stamp, stamp),
             )
         tag_ids = []
         for tag in payload.get("tags", []):
             if isinstance(tag, str):
-                name, tag_id, tag_color = tag.strip(), safe_id(), "#58d6a3"
+                name, tag_id, tag_color = tag.strip(), safe_id(prefix="tag"), "#58d6a3"
             else:
                 name = str(tag.get("name", "")).strip()
-                tag_id, tag_color = safe_id(tag.get("id")), str(tag.get("color") or "#58d6a3")[:32]
+                tag_id, tag_color = safe_id(tag.get("id"), "tag"), str(tag.get("color") or "#58d6a3")[:32]
             if not name:
                 continue
             existing = db.execute("SELECT id FROM tags WHERE name=? COLLATE NOCASE", (name,)).fetchone()
@@ -549,7 +628,7 @@ def upsert_item(payload: dict, item_id: str | None = None) -> dict:
 
 def import_snapshot(payload: object, replace: bool = False) -> dict:
     if isinstance(payload, list):
-        payload = {"format": "heimdall", "items": payload}
+        payload = {"items": payload}
     if not isinstance(payload, dict) or not isinstance(payload.get("items"), list):
         raise ValueError("Import must contain an items array")
     assets = payload.get("assets", {}) if isinstance(payload.get("assets"), dict) else {}
@@ -568,7 +647,7 @@ def import_snapshot(payload: object, replace: bool = False) -> dict:
                 raise ValueError("Item is not an object")
             converted = dict(raw)
             converted["color"] = raw.get("color") or raw.get("colour") or "#17211f"
-            converted["description"] = raw.get("description") if payload.get("format") == "tabmonger-v1" else raw.get("appdescription", "")
+            converted["description"] = raw.get("description") or raw.get("appdescription", "")
             converted["icon"] = asset_map.get(str(raw.get("icon", "")), raw.get("icon", ""))
             upsert_item(converted)
             imported += 1
@@ -833,11 +912,25 @@ class Handler(SimpleHTTPRequestHandler):
             try: payload = self.read_json()
             except Exception as exc: self.send_json({"error": str(exc)}, 400); return
             item_id = self.path.rsplit("/", 1)[-1]
-            allowed = {"pinned", "deleted_at"}
-            with connect() as db:
-                if "pinned" in payload: db.execute("UPDATE items SET pinned=?,updated_at=? WHERE id=?", (1 if payload["pinned"] else 0, now(), item_id))
-                if "deleted_at" in payload and payload["deleted_at"] is None: db.execute("UPDATE items SET deleted_at=NULL,updated_at=? WHERE id=?", (now(), item_id))
-            self.send_json({"ok": True, "fields": list(allowed & payload.keys())}); return
+            allowed = {"pinned", "deleted_at", "tile_dim", "icon_invert"}
+            try:
+                with LOCK, connect() as db:
+                    exists = db.execute("SELECT id FROM items WHERE id=?", (item_id,)).fetchone()
+                    if not exists:
+                        self.send_json({"error": "Item not found"}, 404); return
+                    if "pinned" in payload:
+                        db.execute("UPDATE items SET pinned=?,updated_at=? WHERE id=?", (1 if payload["pinned"] else 0, now(), item_id))
+                    if "deleted_at" in payload and payload["deleted_at"] is None:
+                        db.execute("UPDATE items SET deleted_at=NULL,updated_at=? WHERE id=?", (now(), item_id))
+                    if "tile_dim" in payload:
+                        level = appearance_level(payload["tile_dim"], 0, 90)
+                        db.execute("UPDATE items SET tile_dim=?,updated_at=? WHERE id=?", (level, now(), item_id))
+                    if "icon_invert" in payload:
+                        level = appearance_level(payload["icon_invert"], 0)
+                        db.execute("UPDATE items SET icon_invert=?,updated_at=? WHERE id=?", (level, now(), item_id))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400); return
+            self.send_json({"ok": True, "fields": sorted(allowed & payload.keys())}); return
         self.send_error(404)
 
 

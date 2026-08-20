@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0 — Per-tile dark mode
+
+### Added
+
+- A quick settings control on every tile with independent background-darkening and icon-inversion sliders
+- Automatic text contrast so bright tiles can become comfortable dark variants without losing readability
+- Portable backup/import support for each tile's visual settings
+
+### Changed
+
+- Internal item and tag keys now use TabMonger-native identifiers, with an automatic relationship-safe migration for existing installations
+- Import and migration wording is vendor-neutral throughout the current source tree
+
 ## 1.1.1 — Direct browser downloads
 
 ### Added
@@ -63,7 +76,7 @@
 ### Added
 
 - Dependency-free Python/SQLite/vanilla-JavaScript dashboard
-- Complete Heimdall migration with local assets, ordering, pin states, and trash
+- Complete legacy-dashboard migration with local assets, ordering, pin states, and trash
 - Link management, tags, drag ordering, custom icons, backgrounds, themes, and density controls
 - Complete JSON and browser-bookmark import/export
 - Automatic seven-day portable backup rotation
