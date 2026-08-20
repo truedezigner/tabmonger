@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 def fetch(opener, url): return opener.open(url, timeout=20).read().decode('utf-8', 'replace')
 def main():
-    p=argparse.ArgumentParser();p.add_argument('heimdall',nargs='?',default='http://192.168.29.138:49171');p.add_argument('--target',default='http://127.0.0.1:8787');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('heimdall',help='URL of the Heimdall instance, for example http://192.168.1.20:8080');p.add_argument('--target',default='http://127.0.0.1:8787');a=p.parse_args()
     base=a.heimdall.rstrip('/');cj=http.cookiejar.CookieJar();op=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
     home=BeautifulSoup(fetch(op,base),'html.parser');items_page=BeautifulSoup(fetch(op,base+'/items'),'html.parser')
     def image_data(src):

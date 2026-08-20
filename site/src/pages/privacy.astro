@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Logo from '../components/Logo.astro';
 ---
-<Layout title="Privacy — TabMonger" description="TabMonger website privacy information.">
+<Layout title="Privacy — TabMonger" description="Privacy information for the TabMonger website, dashboard, and browser companions.">
   <main class="legal shell">
     <a href="/" class="brand-link"><Logo /></a>
     <p class="eyebrow"><span></span> Privacy</p>
@@ -19,6 +19,11 @@ import Logo from '../components/Logo.astro';
     <section>
       <h2>The dashboard app</h2>
       <p>Your self-hosted TabMonger installation keeps its links, settings, icons, background, and backups on your own server. It includes no telemetry.</p>
+    </section>
+    <section>
+      <h2>Browser new-tab companions</h2>
+      <p>The Chrome, Edge, and Firefox companions store only your TabMonger base address, two local choices—whether new-tab redirection is enabled and whether to check availability first—and a host-permission pattern derived from that address so old access can be removed after an address change. This information stays in the browser’s extension storage and is not sent to TabMonger’s website or any analytics service.</p>
+      <p>If you enable the friendly offline check, the browser asks for optional access to the saved address’s HTTP or HTTPS hostname. The companion uses that permission only to request TabMonger’s read-only <code>/api/health</code> route without credentials. It does not read browsing history or dashboard content, and it contains no telemetry, advertising, payment code, or remote scripts.</p>
     </section>
     <a class="button" href="/">← Return home</a>
   </main>

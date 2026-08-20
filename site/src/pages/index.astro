@@ -1,11 +1,34 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Logo from '../components/Logo.astro';
+import SupportIcon from '../components/SupportIcon.astro';
 
 const githubUrl = 'https://github.com/truedezigner/tabmonger';
-const downloadUrl = `${githubUrl}/archive/refs/heads/main.zip`;
-const supportUrl = import.meta.env.PUBLIC_STRIPE_SUPPORT_URL?.trim();
-const supportReady = Boolean(supportUrl) && import.meta.env.PUBLIC_STRIPE_SUPPORT_READY === 'true';
+const downloadUrl = `${githubUrl}/releases/latest/download/TabMonger-portable.zip`;
+const quickStartUrl = `${githubUrl}#quick-start`;
+const extensionsUrl = `${githubUrl}/tree/main/extensions`;
+const supportFlag = import.meta.env.PUBLIC_STRIPE_SUPPORT_READY?.trim().toLowerCase();
+const supportCandidate = import.meta.env.PUBLIC_SUPPORT_URL?.trim() || import.meta.env.PUBLIC_STRIPE_SUPPORT_URL?.trim();
+let supportUrl: string | undefined;
+if (supportFlag === 'true') {
+  if (!supportCandidate) throw new Error('Support checkout is marked ready but no Payment Link is configured.');
+  let parsedSupportUrl: URL;
+  try {
+    parsedSupportUrl = new URL(supportCandidate);
+  } catch {
+    throw new Error('Configured support checkout is not a valid URL.');
+  }
+  const validStripeLink = parsedSupportUrl.protocol === 'https:'
+    && parsedSupportUrl.hostname === 'buy.stripe.com'
+    && parsedSupportUrl.port === ''
+    && parsedSupportUrl.username === ''
+    && parsedSupportUrl.password === ''
+    && parsedSupportUrl.pathname.length > 1
+    && parsedSupportUrl.hash === '';
+  if (!validStripeLink) throw new Error('Configured support checkout must be an HTTPS buy.stripe.com Payment Link.');
+  supportUrl = parsedSupportUrl.href;
+}
+const supportReady = Boolean(supportUrl);
 
 const features = [
   ['Everything in its place', 'Pin favorites, drag to reorder, organize with tags, search locally, and recover links from the trash.'],
@@ -17,9 +40,9 @@ const features = [
 ];
 
 const steps = [
-  ['1', 'Download', 'Grab the source from GitHub or clone the repository.'],
-  ['2', 'Run', 'Start one Python file. There is no build step for the dashboard.'],
-  ['3', 'Open', 'Point your browser’s new-tab page at your TabMonger address.']
+  ['1', 'Download', 'Grab one ZIP from GitHub or clone the repository.'],
+  ['2', 'Start', 'Run the small Python 3.10+ server on Linux, macOS, Windows, a NAS, or a home server.'],
+  ['3', 'Connect', 'Open the LAN address from any computer on your network.']
 ];
 ---
 <Layout>
@@ -28,11 +51,12 @@ const steps = [
     <nav aria-label="Main navigation">
       <a href="#features">Features</a>
       <a href="#install">Install</a>
-      <a href="#how-it-stays-light">How it works</a>
+      <a href="#use-everywhere">Use everywhere</a>
+      <a href="#community">Community</a>
       <a href={githubUrl}>GitHub</a>
     </nav>
-    <a class:list={["button button-small coffee-button", !supportReady && "is-pending"]} href={supportReady ? supportUrl : '#support'} aria-label="Support TabMonger with a one-time contribution">
-      <span class="cup-icon" aria-hidden="true"></span> Support
+    <a class="button button-small coffee-button" href={supportReady ? supportUrl : '#support'} target={supportReady ? '_blank' : undefined} rel={supportReady ? 'noopener' : undefined} aria-label="Support TabMonger with an optional one-time contribution">
+      <SupportIcon /> Support
     </a>
   </header>
 
@@ -44,9 +68,9 @@ const steps = [
         <p class="hero-lede">TabMonger is a fast, dependency-free home for every link and service you use—without turning your new tab into another cloud account.</p>
         <div class="hero-actions">
           <a class="button button-primary" href={downloadUrl}>Download TabMonger <span aria-hidden="true">↓</span></a>
-          <a class="button" href="#install">Install in 60 seconds</a>
+          <a class="button" href="#install">See the simple setup</a>
         </div>
-        <p class="hero-note">Free and open source. No telemetry. No account. Optional support only.</p>
+        <p class="hero-note">Free and open source, always. No telemetry. No account. Built to be extended.</p>
       </div>
 
       <div class="dashboard-stage" aria-label="TabMonger dashboard preview">
@@ -78,8 +102,8 @@ const steps = [
 
     <section class="proof-strip" aria-label="Technical summary">
       <div class="shell proof-grid">
-        <p><b>~12 MB</b><span>Typical memory</span></p>
-        <p><b>0</b><span>Runtime dependencies</span></p>
+        <p><b>No account</b><span>Nothing to sign into</span></p>
+        <p><b>0</b><span>Third-party runtime packages</span></p>
         <p><b>1</b><span>Small Python process</span></p>
         <p><b>100%</b><span>Your data, locally</span></p>
       </div>
@@ -130,9 +154,9 @@ const steps = [
 
     <section class="section shell install-section" id="install">
       <div class="section-heading centered">
-        <p class="eyebrow"><span></span> Yours in about a minute</p>
+        <p class="eyebrow"><span></span> Small setup, clear steps</p>
         <h2>Three steps. <em>No ceremony.</em></h2>
-        <p>Python 3 is the only requirement. Run it on a Raspberry Pi, home server, NAS, VM, or the computer already hosting your services.</p>
+        <p>Python 3.10 or newer is the only runtime requirement. Run it on a Raspberry Pi, home server, NAS, VM, or a computer you already keep on your network.</p>
       </div>
       <div class="steps">
         {steps.map(([number, title, body]) => (
@@ -148,29 +172,91 @@ const steps = [
       </div>
       <div class="install-actions">
         <a class="button button-primary" href={downloadUrl}>Download ZIP</a>
-        <a class="button" href={`${githubUrl}#readme`}>Read the complete guide</a>
+        <a class="button" href={quickStartUrl}>Read the quick start</a>
       </div>
       <aside class="safety-note"><b>Keep it private.</b> TabMonger is designed for your LAN or a protected private network. Do not expose your personal dashboard directly to the public internet without authentication.</aside>
+    </section>
+
+    <section class="section network-story" id="use-everywhere">
+      <div class="shell network-grid">
+        <div class="network-copy">
+          <p class="eyebrow dark"><span></span> One home, every new tab</p>
+          <h2>Run it once.<br />Open it everywhere.</h2>
+          <p>Keep TabMonger on one trusted computer, then use its local address from the other computers on your network. Everyone gets the same dashboard without a hosted account or a copy of the app on every machine.</p>
+          <div class="network-actions">
+            <a class="button button-dark" href={extensionsUrl}>View new-tab companions <span aria-hidden="true">→</span></a>
+            <a class="text-link" href={quickStartUrl}>Read the network setup <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        <div class="network-flow" aria-label="How TabMonger connects across a local network">
+          <article>
+            <span class="flow-number">01</span>
+            <div><b>Host TabMonger</b><p>Start it on Linux, macOS, Windows, or a small home server.</p></div>
+            <code>192.168.x.x:8787</code>
+          </article>
+          <i aria-hidden="true"></i>
+          <article>
+            <span class="flow-number">02</span>
+            <div><b>Open the local address</b><p>Check that it loads from each browser on the same trusted network.</p></div>
+            <span class="flow-state">LAN only</span>
+          </article>
+          <i aria-hidden="true"></i>
+          <article>
+            <span class="flow-number">03</span>
+            <div><b>Make it your new tab</b><p>Follow the manual install steps for Chrome/Edge or Firefox, then enter the address once.</p></div>
+            <span class="flow-state">No cloud</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell community-section" id="community">
+      <div class="section-heading community-heading">
+        <p class="eyebrow"><span></span> Open source means open doors</p>
+        <h2>Use it your way.<br /><em>Help shape what comes next.</em></h2>
+        <p>TabMonger is free to use, inspect, change, and share. The browser extensions are only one way to build around it—new integrations, importers, themes, docs, and setup helpers are welcome.</p>
+      </div>
+      <div class="community-grid">
+        <a class="community-card" href={`${githubUrl}/issues`}>
+          <span>01</span>
+          <h3>Share an idea</h3>
+          <p>Report a bug, suggest a feature, or explain a setup that TabMonger could serve better.</p>
+          <b>Open GitHub Issues <i aria-hidden="true">→</i></b>
+        </a>
+        <a class="community-card" href={githubUrl}>
+          <span>02</span>
+          <h3>Improve the project</h3>
+          <p>Read the source, improve the documentation, or contribute a focused pull request.</p>
+          <b>Explore the source <i aria-hidden="true">→</i></b>
+        </a>
+        <a class="community-card" href={extensionsUrl}>
+          <span>03</span>
+          <h3>Build an extension</h3>
+          <p>Use the open new-tab companion source as a starting point for another browser or workflow.</p>
+          <b>View extension source <i aria-hidden="true">→</i></b>
+        </a>
+      </div>
+      <p class="community-note">New to open source? A clear issue, a tested fix, or a documentation improvement is a real contribution.</p>
     </section>
 
     <section class="section support-section shell" id="support">
       <div class="support-card">
         <div>
-          <p class="eyebrow"><span></span> Support indie software</p>
-          <h2>Built by a dev dad.<br />Backed by people who get it.</h2>
-          <p>TabMonger is free to download, run, change, and share. If it earns a permanent place in your browser, a one-time contribution helps fund the next release without turning useful features into a premium tier.</p>
-          <p class="support-small">Donations are optional and do not unlock anything.</p>
+          <p class="eyebrow"><span></span> Keep it independent</p>
+          <h2>Free for everyone.<br />Supported by the community.</h2>
+          <p>TabMonger will stay free and open source. If it earns a permanent place in your browser, an optional one-time contribution helps cover maintenance, testing, documentation, and the quiet work between releases.</p>
+          <p class="support-small">A contribution is always optional and never unlocks features.</p>
         </div>
         <div class="coffee-card">
-          <span class="coffee-steam" aria-hidden="true">⌁</span>
-          <h3>Back the next release</h3>
-          <p>Support the design, testing, documentation, and late-night polish behind TabMonger.</p>
+          <span class="support-icon-wrap"><SupportIcon /></span>
+          <h3>Pitch in, if you’d like</h3>
+          <p>Help keep the project polished, documented, and welcoming to the next person who discovers it.</p>
           {supportReady ? (
-            <a class="button coffee-cta" href={supportUrl} rel="noopener"><span class="cup-icon" aria-hidden="true"></span> Buy me a coffee</a>
+            <a class="button coffee-cta" href={supportUrl} target="_blank" rel="noopener"><SupportIcon /> Make a one-time contribution</a>
           ) : (
-            <span class="button coffee-cta is-pending" aria-disabled="true"><span class="cup-icon" aria-hidden="true"></span> Payments activating soon</span>
+            <span class="button coffee-cta is-pending" aria-disabled="true"><SupportIcon /> Contributions opening soon</span>
           )}
-          <small>Secure one-time checkout is hosted and processed by Stripe.</small>
+          <small>$5 suggested · choose $1–$250 · secure checkout by Stripe</small>
         </div>
       </div>
     </section>
@@ -179,9 +265,9 @@ const steps = [
   <footer>
     <div class="shell footer-grid">
       <div><Logo /><p>A quiet home for everything you host.</p></div>
-      <div><b>Project</b><a href="#features">Features</a><a href="#install">Install</a><a href={githubUrl}>Source code</a></div>
+      <div><b>Project</b><a href="#features">Features</a><a href="#install">Install</a><a href={extensionsUrl}>New-tab companions</a><a href={githubUrl}>Source code</a></div>
       <div><b>Principles</b><span>Private by default</span><span>No telemetry</span><a href="/privacy/">Privacy</a></div>
-      <div><b>Support</b>{supportReady ? <a href={supportUrl}>Buy me a coffee</a> : <span>Payments activating soon</span>}<a href="/support-policy/">Support policy</a><a href={`${githubUrl}/issues`}>Report an issue</a></div>
+      <div><b>Community</b><a href={`${githubUrl}/issues`}>Ideas and issues</a>{supportReady ? <a href={supportUrl} target="_blank" rel="noopener">Optional contribution</a> : <span>Contributions opening soon</span>}<a href="/support-policy/">Support policy</a></div>
     </div>
     <div class="shell footer-bottom"><span>© {new Date().getFullYear()} TabMonger</span><span>Built small on purpose.</span></div>
   </footer>

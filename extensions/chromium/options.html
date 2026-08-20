@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Connect TabMonger</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="extension.css">
+</head>
+<body class="options-page">
+  <main class="options-shell">
+    <div class="brand"><img src="icons/icon.svg" alt=""><span>Tab<span>Monger</span></span></div>
+    <section class="options-card">
+      <p class="eyebrow">Browser connection</p>
+      <h1>Make every new tab yours.</h1>
+      <p class="lede">Run TabMonger on one computer, then paste the address it shows here. Every browser on your home network can point to the same dashboard.</p>
+
+      <form id="setup-form" novalidate>
+        <label class="field">
+          <span>TabMonger address</span>
+          <input id="target-url" name="targetUrl" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="http://192.168.1.20:8787/" required>
+          <small>Private HTTP addresses are supported on your LAN. Use HTTPS if you expose TabMonger outside your trusted network.</small>
+        </label>
+
+        <label class="check-row">
+          <input id="enabled" type="checkbox" checked>
+          <span><strong>Use TabMonger for new tabs</strong><small>You can pause this at any time without forgetting the address.</small></span>
+        </label>
+
+        <label class="check-row">
+          <input id="health-check" type="checkbox" checked>
+          <span><strong>Show a friendly page when TabMonger is offline</strong><small>Your browser will ask for access to this hostname so the extension can check TabMonger's local health route before opening it.</small></span>
+        </label>
+
+        <div class="form-actions">
+          <button class="primary" id="save" type="submit">Save and use TabMonger</button>
+          <button id="test" type="button">Test address</button>
+          <button class="quiet" id="open" type="button">Open once</button>
+        </div>
+      </form>
+
+      <div class="status" id="status" role="status" aria-live="polite">Enter the address shown in the TabMonger launcher.</div>
+      <p class="privacy-note">No account, analytics, browsing history, or remote service is used. The extension stores only this base address and your two choices in local browser storage. URL credentials, query strings, and fragments are never saved.</p>
+
+      <div class="danger-zone">
+        <p>Want the browser's original new-tab page back? Pause above, disable the extension, or clear its setup.</p>
+        <button class="danger" id="clear" type="button">Clear setup</button>
+      </div>
+    </section>
+  </main>
+  <script src="common.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

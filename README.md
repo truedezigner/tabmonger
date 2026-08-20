@@ -1,98 +1,130 @@
 # TabMonger
 
-An extremely lightweight personal launch dashboard and Heimdall replacement. It is one Python standard-library process, SQLite, and plain HTML/CSS/JavaScript: no package installation, framework, container, build step, telemetry, or external CDN.
+**Your links. No ceremony.**
+
+TabMonger is a tiny, self-hosted new-tab dashboard for links, private services, local search, weather, and quiet reachability checks. The dashboard runtime is one Python standard-library process with SQLite and plain HTML/CSS/JavaScript—no account, telemetry, runtime package installation, framework, container, build step, or external CDN.
 
 **Website:** [tabmonger.com](https://tabmonger.com) · **License:** [MIT](LICENSE)
 
-The interface uses one consistent cool blue-gray visual system across search, dialogs, settings, forms, tabs, controls, and status elements. Individual service tiles retain their own brand colors.
+## Quick start
 
-## Run
+### Portable download
 
-### Quick start
+1. Download [TabMonger-portable.zip](https://github.com/truedezigner/tabmonger/releases/latest/download/TabMonger-portable.zip).
+2. Extract the ZIP.
+3. Double-click the launcher for your system:
+   - Windows: `Start TabMonger.bat`
+   - macOS: `Start TabMonger.command`
+   - Linux: `Start TabMonger.sh`
+4. Keep the launcher window open. TabMonger opens locally and prints a LAN address such as `http://192.168.1.20:8787/` for trusted computers on the same network.
+
+Python 3.10 or newer is the only runtime requirement. Windows may ask whether Python and TabMonger can use the network; allow private networks only. See the [complete installation guide](docs/INSTALL.md) for platform notes, firewall help, automatic startup, updates, and a stable-address recommendation.
+
+TabMonger prefers port `8787`. If another program owns it, the portable launcher finds a nearby free port and clearly prints the address it selected.
+
+### Run from source
 
 ```bash
-git clone https://github.com/truedezigner/tabmonger.git
-cd tabmonger
-python3 server.py --host 0.0.0.0 --port 8787
+git clone https://github.com/truedezigner/tabmonger.git && cd tabmonger && python3 server.py --open
 ```
 
-Open `http://127.0.0.1:8787` locally or `http://192.168.29.44:8787` on the LAN.
+Or download the repository ZIP and use the same platform launchers. Linux users can install an automatic per-user service with `./install.sh`; it requires no root access.
 
-For an automatic per-user systemd service:
+## Make TabMonger your new tab
 
-```bash
-./install.sh
-```
+The repository includes build-free companions for Chrome, Edge, and Firefox under [`extensions/`](extensions/). Each extension remembers one TabMonger address and opens it as the browser’s new-tab destination.
 
-The installer uses the current checkout path, starts TabMonger immediately, enables it at login, and does not require root.
+1. Start TabMonger on one trusted computer.
+2. Confirm its printed LAN address opens from the other computer.
+3. Load the matching extension and save that address once.
 
-> [!IMPORTANT]
-> Keep personal TabMonger instances on a trusted LAN, VPN, or behind authentication. The app intentionally has no user-account system and should not be exposed directly to the public internet.
+Chrome and Edge can load the Chromium folder persistently in Developer mode. Standard Firefox currently loads the repository build temporarily for development; a permanent consumer install requires a Mozilla-signed package. The [extension guide](extensions/README.md) gives exact steps and explains the minimal permissions, offline behavior, and privacy model.
+
+Using one stable port and a DHCP reservation or local hostname keeps the saved extension address working after router restarts.
+
+## First run and private data
+
+A clean install begins empty, with outbound weather and service checks off. The first-run screen offers three paths: add a link, import bookmarks or a TabMonger/Heimdall backup, or connect a new-tab extension.
+
+Private state is stored outside the downloaded application by default:
+
+- Linux: `~/.local/share/tabmonger/`
+- macOS: `~/Library/Application Support/TabMonger/`
+- Windows: `%LOCALAPPDATA%\TabMonger\`
+
+The folder contains the SQLite database, uploaded icons/backgrounds, and seven rotating daily backups. Existing pre-portable installations with `data/tabmonger.db` are detected and continue using their original ignored data and upload folders. Use `--data-dir` or `TABMONGER_DATA_DIR` to choose another location.
 
 ## Features
 
 ### Links and organization
 
-- Add, edit, auto-discover, pin, unpin, drag-reorder, trash, restore, and permanently delete links
+- Add, edit, auto-discover, pin, drag-reorder, trash, restore, and permanently delete links
 - Custom icon URL or upload with an initials fallback
-- Tags, filtering, tag renaming, and tag deletion
-- Pinned and all-links views with three tile densities
+- Tags, filtering, tag management, and three tile densities
 - Same-tab or new-tab launching
+- Context-aware first-run and empty states
 
-### Search
+### Search and glance information
 
-- SearXNG-first search using the configured private instance
-- Ranked local-link suggestions before the final web-search action
-- Dedicated local-only search mode
+- Ranked local-link search and suggestions
+- Optional private SearXNG web search
 - `/` to focus, arrow-key navigation, and Enter to open
-- High-contrast custom provider menu with exactly two choices
-
-### At-a-glance information
-
-- Compact local weekday and date
-- Server-cached weather with built-in symbols, configurable location, and Fahrenheit/Celsius
-- Tiny per-tile reachability indicators for private LAN services
-- One-click down-only view with outage confirmation times
+- Local weekday/date and optional server-cached weather
+- Optional centralized reachability indicators for private LAN services
 
 ### Lightweight service monitoring
 
-- One centralized TCP connect-and-close per unique endpoint; browser tabs never probe services
+- One shared TCP connect-and-close per unique private endpoint; browser tabs never probe services
 - Healthy endpoints checked every five minutes
-- First failure retried after 15 seconds before an outage is published
-- Confirmed-down endpoints back off to fifteen-minute checks
-- Per-link monitoring switches
-- Global **Settings → Behavior → Live service status checks** switch
-- Turning checks Off immediately clears cached service states and stops service connections
+- First failure confirmed after 15 seconds
+- Confirmed-down endpoints backed off to fifteen-minute checks
+- Per-link and global monitoring switches
+- Monitoring is off until a new user opts in
 
-### Appearance and portability
+### Appearance, portability, and extension
 
 - Background URL/upload, color, and overlay controls
 - Dark, light, and system themes
-- Unified cool blue-gray interface palette
-- Full JSON import/export including order, tags, settings, local icons, and background
-- Heimdall JSON import and browser-bookmark HTML import/export
-- Automatic daily portable backups with seven-day rotation
-- Optional custom CSS and JavaScript
-- Responsive desktop and mobile layouts
+- Full JSON import/export with order, tags, settings, local icons, and background
+- Heimdall JSON and browser-bookmark HTML import
+- Automatic seven-day portable backup rotation
+- Trusted local custom CSS and JavaScript
+- Chrome/Edge and Firefox new-tab companion source
 
-## Monitoring traffic
+## Network and security model
 
-Monitoring is deliberately conservative. Multiple tiles sharing the same host and port are deduplicated. An online endpoint sees at most one tiny TCP connection every five minutes. A confirmed-down endpoint receives two attempts every fifteen minutes. No HTTP page is loaded and opening more dashboard tabs does not increase service traffic.
+TabMonger intentionally has no user-account system. Keep it on a trusted LAN, private VPN, or behind a properly authenticated reverse proxy; do not expose a personal dashboard directly to the public internet.
 
-## Data and backups
+The server rejects cross-site browser API requests and browser requests using an untrusted Host, but those guards are defense in depth—not authentication. Saved links and exports may contain private addresses or sensitive URL fragments. Treat the database and every backup as private.
 
-- Database: `data/tabmonger.db`
-- Uploaded assets: `assets/uploads/`
-- Rotating daily backups: `data/backups/tabmonger-YYYY-MM-DD.json`
-- Health endpoint: `/api/health`
-- Cached glance endpoint: `/api/glance`
-- Complete portable export: `/api/export`
+See [SECURITY.md](SECURITY.md) before changing network exposure.
 
-Portable exports and automatic backups contain full saved URLs. Treat them as private because a URL may itself contain a session fragment or other sensitive value.
+## Build around it
 
-The original Heimdall migration copied links, descriptions, icons, pin state, order, tags, background, and trash entries. App-integration credentials were not added to project source.
+TabMonger favors inspectable extensions over a remote plugin marketplace:
 
-## Documentation
+- [`extensions/`](extensions/) — browser new-tab companions
+- [Extending TabMonger](docs/EXTENDING.md) — trusted local CSS/JavaScript and source layout
+- [CONTRIBUTING.md](CONTRIBUTING.md) — project principles, bug reports, and pull requests
+- [`community/`](community/) — a home for small, reviewable customization recipes
 
-- [PROJECT-NOTES.md](PROJECT-NOTES.md) — architecture, operation, design decisions, backups, and brand direction
-- [CHANGELOG.md](CHANGELOG.md) — completed product milestones
+Clear issues, platform testing, documentation fixes, accessibility work, and focused code contributions are welcome. Financial support is optional and never required to use or help build TabMonger.
+
+## Development checks
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 scripts/check_public_release.py
+node --check public/app.js
+node extensions/scripts/validate.mjs
+node extensions/scripts/runtime-tests.mjs
+```
+
+The public Astro website lives under `site/` and has its own build and checkout smoke test documented in [`site/README.md`](site/README.md).
+
+## Additional documentation
+
+- [Installation and LAN setup](docs/INSTALL.md)
+- [Extending TabMonger](docs/EXTENDING.md)
+- [Project architecture and decisions](PROJECT-NOTES.md)
+- [Changelog](CHANGELOG.md)

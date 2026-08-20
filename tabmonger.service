@@ -4,8 +4,10 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/projects/tabmonger
-ExecStart=/usr/bin/python3 %h/projects/tabmonger/server.py --host 0.0.0.0 --port 8787
+WorkingDirectory=%h/.local/lib/tabmonger
+Environment=TABMONGER_DATA_DIR=%h/.local/share/tabmonger
+Environment=TABMONGER_UPLOADS_DIR=%h/.local/share/tabmonger/uploads
+ExecStart=/usr/bin/python3 %h/.local/lib/tabmonger/server.py --host 0.0.0.0 --port 8787
 Restart=on-failure
 RestartSec=2
 

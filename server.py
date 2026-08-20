@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import errno
 import html
 import ipaddress
 import json
@@ -13,11 +14,12 @@ import os
 import re
 import socket
 import sqlite3
+import sys
 import threading
 import time
 import uuid
+import webbrowser
 from concurrent.futures import ThreadPoolExecutor
-from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, urljoin, urlparse
@@ -25,10 +27,9 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT / "public"
-DATA = ROOT / "data"
-BACKUPS = DATA / "backups"
-UPLOADS = ROOT / "assets" / "uploads"
-DB_PATH = DATA / "tabmonger.db"
+APP_VERSION = "1.1.0"
+LEGACY_DATA = ROOT / "data"
+LEGACY_UPLOADS = ROOT / "assets" / "uploads"
 MAX_BODY = 24 * 1024 * 1024
 LOCK = threading.RLock()
 CACHE_LOCK = threading.RLock()
@@ -43,23 +44,128 @@ DEFAULT_SETTINGS = {
     "title": "TabMonger",
     "subtitle": "Your links. No ceremony.",
     "theme": "dark",
-    "background_color": "#07110f",
+    "background_color": "#0c131d",
     "background_image": "",
     "background_overlay": "0.46",
     "homepage_search": "true",
-    "search_provider": "searxng",
+    "search_provider": "tiles",
     "searxng_url": "",
     "open_target": "same",
     "show_mode": "pinned",
     "tile_size": "medium",
     "show_glance": "true",
-    "monitor_services": "true",
-    "weather_enabled": "true",
+    "monitor_services": "false",
+    "weather_enabled": "false",
     "weather_location": "",
     "weather_units": "f",
     "custom_css": "",
     "custom_js": "",
 }
+
+SHARED_VPN_IPV4 = ipaddress.ip_network("100.64.0.0/10")
+
+
+def trusted_network_address(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Recognize loopback, RFC-private, and the shared range commonly used by private VPNs."""
+    return address.is_private or address.is_loopback or (
+        address.version == 4 and address in SHARED_VPN_IPV4
+    )
+
+
+def default_data_dir(
+    environ: dict[str, str] | None = None,
+    platform_name: str | None = None,
+    home: Path | None = None,
+    project_root: Path | None = None,
+) -> Path:
+    """Choose a private per-user state directory without breaking legacy installs."""
+    env = os.environ if environ is None else environ
+    explicit = env.get("TABMONGER_DATA_DIR", "").strip()
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+
+    root = ROOT if project_root is None else Path(project_root)
+    legacy = root / "data"
+    # Releases never contain this ignored database. Existing users who already
+    # run from a checkout keep their state automatically after an upgrade.
+    if (legacy / "tabmonger.db").is_file():
+        return legacy.resolve()
+
+    user_home = Path.home() if home is None else Path(home)
+    platform_value = sys.platform if platform_name is None else platform_name
+    if platform_value == "win32":
+        base = Path(env.get("LOCALAPPDATA") or env.get("APPDATA") or user_home / "AppData" / "Local")
+        return (base / "TabMonger").expanduser().resolve()
+    if platform_value == "darwin":
+        return (user_home / "Library" / "Application Support" / "TabMonger").resolve()
+    base = Path(env.get("XDG_DATA_HOME") or user_home / ".local" / "share")
+    return (base / "tabmonger").expanduser().resolve()
+
+
+def configure_runtime(data_dir: str | os.PathLike[str] | None = None, uploads_dir: str | os.PathLike[str] | None = None) -> None:
+    """Set runtime paths. Primarily used by the CLI and isolated tests."""
+    global DATA, BACKUPS, UPLOADS, DB_PATH
+    selected = Path(data_dir).expanduser().resolve() if data_dir else default_data_dir()
+    explicit_uploads = uploads_dir or os.getenv("TABMONGER_UPLOADS_DIR", "").strip()
+    if explicit_uploads:
+        selected_uploads = Path(explicit_uploads).expanduser().resolve()
+    elif selected == LEGACY_DATA.resolve():
+        selected_uploads = LEGACY_UPLOADS.resolve()
+    else:
+        selected_uploads = selected / "uploads"
+    DATA = selected
+    BACKUPS = DATA / "backups"
+    UPLOADS = selected_uploads
+    DB_PATH = DATA / "tabmonger.db"
+
+
+configure_runtime()
+
+
+def ensure_private_directory(path: Path) -> None:
+    """Create a state directory and keep it owner-only on POSIX hosts."""
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name == "posix":
+        path.chmod(0o700)
+
+
+def ensure_private_file(path: Path) -> None:
+    """Keep an existing state file readable and writable only by its owner."""
+    if os.name == "posix" and path.is_file() and not path.is_symlink():
+        path.chmod(0o600)
+
+
+def write_private_file(path: Path, raw: bytes, *, exclusive: bool = False) -> None:
+    """Write a private state file without a world-readable creation window."""
+    flags = os.O_WRONLY | os.O_CREAT | (os.O_EXCL if exclusive else os.O_TRUNC)
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(path, flags, 0o600)
+    try:
+        with os.fdopen(descriptor, "wb") as destination:
+            destination.write(raw)
+    except Exception:
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+        raise
+    ensure_private_file(path)
+
+
+def uploaded_file(web_path: str) -> Path | None:
+    """Map a public upload URL to configured private storage without traversal."""
+    prefix = "/assets/uploads/"
+    if not isinstance(web_path, str) or not web_path.startswith(prefix):
+        return None
+    name = web_path[len(prefix):]
+    if not name or "/" in name or "\\" in name or name in {".", ".."}:
+        return None
+    upload_root = UPLOADS.resolve()
+    candidate = (upload_root / name).resolve()
+    if candidate.parent != upload_root:
+        return None
+    return candidate
 
 
 def connect() -> sqlite3.Connection:
@@ -67,12 +173,22 @@ def connect() -> sqlite3.Connection:
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA foreign_keys=ON")
     db.execute("PRAGMA journal_mode=WAL")
+    ensure_private_file(DB_PATH)
+    ensure_private_file(DB_PATH.with_name(DB_PATH.name + "-wal"))
+    ensure_private_file(DB_PATH.with_name(DB_PATH.name + "-shm"))
     return db
 
 
 def init_db() -> None:
-    DATA.mkdir(parents=True, exist_ok=True)
-    UPLOADS.mkdir(parents=True, exist_ok=True)
+    ensure_private_directory(DATA)
+    ensure_private_directory(UPLOADS)
+    ensure_private_directory(BACKUPS)
+    if not DB_PATH.exists():
+        descriptor = os.open(DB_PATH, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        os.close(descriptor)
+    ensure_private_file(DB_PATH)
+    for private_file in (*UPLOADS.iterdir(), *BACKUPS.iterdir()):
+        ensure_private_file(private_file)
     with connect() as db:
         db.executescript(
             """
@@ -128,7 +244,7 @@ def private_endpoint(value: str) -> tuple[str, int] | None:
         if host.lower() == "localhost" or host.lower().endswith((".local", ".lan")):
             private = True
         else:
-            private = ipaddress.ip_address(host).is_private
+            private = trusted_network_address(ipaddress.ip_address(host))
         if not private:
             return None
         return host, parsed.port or (443 if parsed.scheme == "https" else 80)
@@ -228,14 +344,18 @@ def refresh_weather(settings: dict) -> None:
 
 
 def ensure_daily_backup() -> None:
-    BACKUPS.mkdir(parents=True, exist_ok=True)
+    ensure_private_directory(BACKUPS)
     day = time.strftime("%Y-%m-%d", time.localtime())
     destination = BACKUPS / f"tabmonger-{day}.json"
     try:
         if not destination.exists():
             temporary = BACKUPS / f".{destination.name}.tmp"
-            temporary.write_text(json.dumps(snapshot(True), ensure_ascii=False), encoding="utf-8")
+            write_private_file(
+                temporary,
+                json.dumps(snapshot(True), ensure_ascii=False).encode("utf-8"),
+            )
             os.replace(temporary, destination)
+        ensure_private_file(destination)
         backups = sorted(BACKUPS.glob("tabmonger-????-??-??.json"))
         for expired in backups[:-7]:
             expired.unlink()
@@ -303,8 +423,8 @@ def snapshot(include_assets: bool = False) -> dict:
         if bg.startswith("/assets/uploads/"):
             paths.add(bg)
         for web_path in paths:
-            file_path = ROOT / web_path.lstrip("/")
-            if file_path.is_file():
+            file_path = uploaded_file(web_path)
+            if file_path and file_path.is_file():
                 mime = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
                 assets[web_path] = f"data:{mime};base64," + base64.b64encode(file_path.read_bytes()).decode()
         result["assets"] = assets
@@ -338,7 +458,8 @@ def save_data_url(value: str, prefix: str) -> str:
     if not ext:
         raise ValueError("Unsupported image type")
     name = f"{prefix}-{uuid.uuid4().hex[:12]}{ext}"
-    (UPLOADS / name).write_bytes(raw)
+    ensure_private_directory(UPLOADS)
+    write_private_file(UPLOADS / name, raw, exclusive=True)
     return "/assets/uploads/" + name
 
 
@@ -465,25 +586,90 @@ def import_snapshot(payload: object, replace: bool = False) -> dict:
     return {"imported": imported, "failed": failed}
 
 
+def _authority(value: str, scheme: str) -> tuple[str, int] | None:
+    try:
+        parsed = urlparse(f"{scheme}://{value}")
+        if not parsed.hostname or parsed.username or parsed.password or parsed.path not in {"", "/"}:
+            return None
+        port = parsed.port or (443 if scheme == "https" else 80)
+        return parsed.hostname.rstrip(".").casefold(), port
+    except (TypeError, ValueError):
+        return None
+
+
+def trusted_browser_host(host_header: str, allowed_hosts: set[str] | None = None) -> bool:
+    authority = _authority(host_header.strip(), "http")
+    if not authority:
+        return False
+    hostname = authority[0]
+    configured = {
+        value.strip().rstrip(".").casefold()
+        for value in os.getenv("TABMONGER_ALLOWED_HOSTS", "").split(",")
+        if value.strip()
+    }
+    if allowed_hosts:
+        configured.update(value.rstrip(".").casefold() for value in allowed_hosts)
+    if hostname in configured:
+        return True
+    if hostname == "localhost" or hostname.endswith((".localhost", ".local", ".lan", ".home.arpa")):
+        return True
+    local_names = {socket.gethostname().rstrip(".").casefold(), socket.getfqdn().rstrip(".").casefold()}
+    if hostname in local_names:
+        return True
+    try:
+        return trusted_network_address(ipaddress.ip_address(hostname))
+    except ValueError:
+        return False
+
+
+def browser_request_rejection(headers: object) -> str | None:
+    """Reject untrusted Host and cross-site API requests, including legacy browsers."""
+    get_header = getattr(headers, "get")
+    origin = str(get_header("Origin", "") or "").strip()
+    fetch_site = str(get_header("Sec-Fetch-Site", "") or "").strip().casefold()
+    host_header = str(get_header("Host", "") or "").strip()
+    if not trusted_browser_host(host_header):
+        return "This Host is not allowed for API requests"
+    if not origin and not fetch_site:
+        return None
+    if fetch_site == "cross-site":
+        return "Cross-site browser requests are not allowed"
+    if origin:
+        parsed = urlparse(origin)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.path not in {"", "/"}:
+            return "Invalid browser Origin"
+        origin_authority = _authority(parsed.netloc, parsed.scheme)
+        host_authority = _authority(host_header, parsed.scheme)
+        if not origin_authority or origin_authority != host_authority:
+            return "Browser Origin must match the request Host"
+    return None
+
+
 class Handler(SimpleHTTPRequestHandler):
-    server_version = "TabMonger/1.0"
+    server_version = f"TabMonger/{APP_VERSION}"
 
     def log_message(self, fmt: str, *args: object) -> None:
         print(f"[{self.log_date_time_string()}] {fmt % args}")
 
     def end_headers(self) -> None:
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        csp = "frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+        if getattr(self, "_sandbox_upload", False):
+            csp += "; sandbox; default-src 'none'; style-src 'unsafe-inline'"
+        self.send_header("Content-Security-Policy", csp)
         self.send_header("Referrer-Policy", "same-origin")
         self.send_header("Cache-Control", "no-store" if self.path.startswith("/api/") else "no-cache")
         super().end_headers()
 
-    def send_json(self, value: object, status: int = 200) -> None:
+    def send_json(self, value: object, status: int = 200, *, head_only: bool = False) -> None:
         raw = json.dumps(value, ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(raw)))
         self.end_headers()
-        self.wfile.write(raw)
+        if not head_only:
+            self.wfile.write(raw)
 
     def read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", "0"))
@@ -491,8 +677,17 @@ class Handler(SimpleHTTPRequestHandler):
             raise ValueError("Invalid request size")
         return json.loads(self.rfile.read(length))
 
+    def reject_unsafe_browser_request(self) -> bool:
+        reason = browser_request_rejection(self.headers)
+        if not reason:
+            return False
+        self.send_json({"error": reason}, 403)
+        return True
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/") and self.reject_unsafe_browser_request():
+            return
         if parsed.path == "/api/state":
             self.send_json(snapshot(False)); return
         if parsed.path == "/api/glance":
@@ -501,9 +696,14 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json(snapshot(True)); return
         if parsed.path == "/api/health":
             state = snapshot(False)
-            self.send_json({"ok": True, "items": len(state["items"]), "name": "TabMonger"}); return
+            self.send_json({"ok": True, "items": len(state["items"]), "name": "TabMonger", "version": APP_VERSION}); return
         if parsed.path.startswith("/assets/uploads/"):
-            self.serve_path(ROOT / parsed.path.lstrip("/")); return
+            upload = uploaded_file(parsed.path)
+            if upload:
+                self.serve_path(upload, uploaded=True)
+            else:
+                self.send_error(404)
+            return
         if parsed.path in {"/", "/index.html"}:
             self.serve_path(PUBLIC / "index.html"); return
         requested = (PUBLIC / parsed.path.lstrip("/")).resolve()
@@ -511,17 +711,52 @@ class Handler(SimpleHTTPRequestHandler):
             self.serve_path(requested); return
         self.send_error(404)
 
-    def serve_path(self, path: Path) -> None:
+    def do_HEAD(self) -> None:
+        """Mirror safe read routes without exposing project-root file metadata."""
+        parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/"):
+            reason = browser_request_rejection(self.headers)
+            if reason:
+                self.send_json({"error": reason}, 403, head_only=True)
+                return
+        if parsed.path == "/api/health":
+            state = snapshot(False)
+            self.send_json(
+                {"ok": True, "items": len(state["items"]), "name": "TabMonger", "version": APP_VERSION},
+                head_only=True,
+            )
+            return
+        if parsed.path.startswith("/assets/uploads/"):
+            upload = uploaded_file(parsed.path)
+            if upload:
+                self.serve_path(upload, uploaded=True, head_only=True)
+            else:
+                self.send_error(404)
+            return
+        if parsed.path in {"/", "/index.html"}:
+            self.serve_path(PUBLIC / "index.html", head_only=True)
+            return
+        requested = (PUBLIC / parsed.path.lstrip("/")).resolve()
+        if requested.is_relative_to(PUBLIC.resolve()) and requested.is_file():
+            self.serve_path(requested, head_only=True)
+            return
+        self.send_error(404)
+
+    def serve_path(self, path: Path, *, uploaded: bool = False, head_only: bool = False) -> None:
         if not path.is_file():
             self.send_error(404); return
-        raw = path.read_bytes()
+        raw = b"" if head_only else path.read_bytes()
+        self._sandbox_upload = uploaded
         self.send_response(200)
         self.send_header("Content-Type", mimetypes.guess_type(path.name)[0] or "application/octet-stream")
-        self.send_header("Content-Length", str(len(raw)))
+        self.send_header("Content-Length", str(path.stat().st_size))
         self.end_headers()
-        self.wfile.write(raw)
+        if not head_only:
+            self.wfile.write(raw)
 
     def do_POST(self) -> None:
+        if self.reject_unsafe_browser_request():
+            return
         try:
             payload = self.read_json()
             if self.path == "/api/items":
@@ -541,6 +776,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"error": str(exc)}, 400)
 
     def do_PUT(self) -> None:
+        if self.reject_unsafe_browser_request():
+            return
         try:
             payload = self.read_json()
             if self.path.startswith("/api/items/"):
@@ -574,6 +811,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"error": str(exc)}, 400 if not isinstance(exc, KeyError) else 404)
 
     def do_DELETE(self) -> None:
+        if self.reject_unsafe_browser_request():
+            return
         parsed = urlparse(self.path)
         if parsed.path.startswith("/api/items/"):
             item_id = parsed.path.rsplit("/", 1)[-1]
@@ -588,6 +827,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_error(404)
 
     def do_PATCH(self) -> None:
+        if self.reject_unsafe_browser_request():
+            return
         if self.path.startswith("/api/items/"):
             try: payload = self.read_json()
             except Exception as exc: self.send_json({"error": str(exc)}, 400); return
@@ -600,17 +841,141 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_error(404)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default=os.getenv("TABMONGER_HOST", "0.0.0.0"))
-    parser.add_argument("--port", type=int, default=int(os.getenv("TABMONGER_PORT", "8787")))
-    args = parser.parse_args()
-    init_db()
+class TabMongerHTTPServer(ThreadingHTTPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+
+def lan_ipv4_addresses() -> list[str]:
+    candidates: set[str] = set()
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET, socket.SOCK_STREAM):
+            candidates.add(info[4][0])
+    except OSError:
+        pass
+    # A UDP connect selects an interface but sends no application data.
+    for probe in ("192.0.2.1", "198.51.100.1"):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                sock.connect((probe, 9))
+                candidates.add(sock.getsockname()[0])
+        except OSError:
+            pass
+    result = []
+    for candidate in candidates:
+        try:
+            address = ipaddress.ip_address(candidate)
+        except ValueError:
+            continue
+        if address.version == 4 and trusted_network_address(address) and not address.is_loopback and not address.is_link_local:
+            result.append(candidate)
+    return sorted(result, key=lambda value: tuple(int(part) for part in value.split(".")))
+
+
+def advertised_urls(host: str, port: int, addresses: list[str] | None = None) -> list[tuple[str, str]]:
+    urls: list[tuple[str, str]] = []
+    normalized = host.strip().casefold()
+    if normalized in {"", "0.0.0.0", "::", "[::]"}:
+        urls.append(("This computer", f"http://127.0.0.1:{port}/"))
+        for address in lan_ipv4_addresses() if addresses is None else addresses:
+            urls.append(("Your network", f"http://{address}:{port}/"))
+    elif normalized in {"127.0.0.1", "localhost", "::1", "[::1]"}:
+        display_host = "[::1]" if ":" in normalized else host
+        urls.append(("This computer", f"http://{display_host}:{port}/"))
+    else:
+        display_host = f"[{host}]" if ":" in host and not host.startswith("[") else host
+        urls.append(("Server", f"http://{display_host}:{port}/"))
+    return urls
+
+
+def existing_tabmonger_url(port: int) -> str | None:
+    url = f"http://127.0.0.1:{port}/"
+    try:
+        with urlopen(url + "api/health", timeout=0.6) as response:
+            payload = json.loads(response.read(32 * 1024))
+        if payload.get("ok") is True and payload.get("name") == "TabMonger":
+            return url
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
+    return None
+
+
+def print_startup_banner(host: str, port: int, *, already_running: bool = False) -> list[tuple[str, str]]:
+    urls = advertised_urls(host, port)
+    heading = "TabMonger is already running." if already_running else "TabMonger is running."
+    print(f"\n{heading}")
+    for label, url in urls:
+        print(f"  {label:<13} {url}")
+    if not already_running:
+        print(f"  {'Private data':<13} {DATA}")
+        print("\nKeep this window open while you use TabMonger. Press Ctrl+C to stop it.")
+        print("Only share the network URL with people you trust on your local network.")
+    print(flush=True)
+    return urls
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Run the TabMonger personal launch dashboard")
+    parser.add_argument("--host", default=os.getenv("TABMONGER_HOST", "0.0.0.0"), help="listen address (default: 0.0.0.0 for LAN access)")
+    parser.add_argument("--port", type=int, default=int(os.getenv("TABMONGER_PORT", "8787")), help="listen port (default: 8787)")
+    parser.add_argument("--data-dir", default=None, help="private state directory (or set TABMONGER_DATA_DIR)")
+    parser.add_argument("--uploads-dir", default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--open", action="store_true", dest="open_browser", help="open TabMonger in the default browser")
+    parser.add_argument("--find-port", action="store_true", help="try the next 20 ports if the requested port is busy")
+    args = parser.parse_args(argv)
+    if not 0 <= args.port <= 65535:
+        parser.error("port must be between 0 and 65535")
+    configure_runtime(args.data_dir, args.uploads_dir)
+
+    candidates = [args.port]
+    if args.find_port and args.port:
+        candidates.extend(range(args.port + 1, min(args.port + 21, 65535) + 1))
+    httpd: TabMongerHTTPServer | None = None
+    last_error: OSError | None = None
+    for candidate in candidates:
+        try:
+            httpd = TabMongerHTTPServer((args.host, candidate), Handler)
+            break
+        except OSError as exc:
+            last_error = exc
+            address_in_use = exc.errno == errno.EADDRINUSE or getattr(exc, "winerror", None) == 10048
+            if not address_in_use:
+                raise
+            running_url = existing_tabmonger_url(candidate)
+            if running_url:
+                urls = print_startup_banner(args.host, candidate, already_running=True)
+                if args.open_browser:
+                    webbrowser.open(urls[0][1])
+                return 0
+            if not args.find_port:
+                print(f"TabMonger could not start: port {candidate} is already in use.", file=sys.stderr)
+                print(f"Try again with --port {candidate + 1}, or close the other program first.", file=sys.stderr)
+                return 2
+    if httpd is None:
+        detail = f": {last_error}" if last_error else ""
+        print(f"TabMonger could not find an available port{detail}", file=sys.stderr)
+        return 2
+
+    actual_port = int(httpd.server_address[1])
+    try:
+        init_db()
+    except Exception:
+        httpd.server_close()
+        raise
     threading.Thread(target=glance_worker, name="tabmonger-glance", daemon=True).start()
-    server = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"TabMonger listening on http://{args.host}:{args.port}")
-    server.serve_forever()
+    urls = print_startup_banner(args.host, actual_port)
+    if actual_port != args.port and args.port:
+        print(f"Port {args.port} was busy, so this launch is using port {actual_port}.\n", flush=True)
+    if args.open_browser:
+        threading.Thread(target=webbrowser.open, args=(urls[0][1],), name="tabmonger-browser", daemon=True).start()
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nTabMonger stopped.")
+    finally:
+        httpd.server_close()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

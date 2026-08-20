@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a reproducible TabMonger problem without sharing private dashboard data.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve TabMonger. Do not include databases, backups, credentials, private URLs, or payment receipts.
+  - type: input
+    id: version
+    attributes:
+      label: TabMonger version or commit
+      placeholder: v1.1.0 or a commit hash
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Python version, and browser.
+      placeholder: Ubuntu 24.04, Python 3.12, Firefox 141
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use fictional hostnames and addresses when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed private URLs, credentials, database files, backups, and personal data.
+          required: true

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>TabMonger</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="extension.css">
+</head>
+<body class="newtab-page">
+  <main class="handoff" aria-live="polite">
+    <div class="brand"><img src="icons/icon.svg" alt=""><span>Tab<span>Monger</span></span></div>
+    <div class="state-mark waiting" id="state-mark" aria-hidden="true"></div>
+    <h1 id="state-title">Opening your dashboard</h1>
+    <p id="state-message">Checking the TabMonger computer on your network.</p>
+    <div class="target" id="target" hidden></div>
+    <div class="actions" id="actions" hidden>
+      <button class="primary" type="button" data-action="retry">Try again</button>
+      <button class="primary" type="button" data-action="resume">Resume TabMonger</button>
+      <button type="button" data-action="open-once">Open anyway</button>
+      <button class="quiet" type="button" data-action="settings">Connection settings</button>
+    </div>
+    <p class="fine-print" id="fine-print">Your address stays in this browser. TabMonger collects no browsing data.</p>
+    <noscript>JavaScript is required to open your self-hosted TabMonger dashboard.</noscript>
+  </main>
+  <script src="common.js"></script>
+  <script src="newtab.js"></script>
+</body>
+</html>

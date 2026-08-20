@@ -173,6 +173,52 @@ body {
   background: #1a2536;
 }
 
+.empty.first-run {
+  width: min(720px, 100%);
+  margin: 14px auto 0;
+  padding: 50px 28px;
+  border: 1px solid #303d55;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(21, 30, 44, .82), rgba(12, 19, 29, .78));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .24);
+}
+
+.empty.first-run .empty-symbol {
+  width: 54px;
+  height: 54px;
+  border-color: #52698f;
+  color: #c9d7f5;
+  background: #172131;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -.04em;
+}
+
+.empty.first-run > span:not(.empty-symbol) {
+  max-width: 540px;
+  margin-inline: auto;
+}
+
+.empty-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.empty-actions a,
+.empty-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.empty.first-run small {
+  margin-top: 10px;
+  color: #74839c;
+}
+
 .pin:hover,
 .pin:focus-visible,
 .pin.active {
@@ -210,6 +256,23 @@ body.light .tab-pane textarea {
 body.light .form-grid select option {
   color: #172031;
   background: #fff;
+}
+
+body.light .empty.first-run {
+  border-color: #c8d2e3;
+  background: rgba(247, 249, 253, .92);
+  box-shadow: 0 24px 70px rgba(45, 61, 91, .12);
+}
+
+body.light .empty.first-run .empty-symbol {
+  border-color: #aebdd3;
+  color: #31496f;
+  background: #e8edf6;
+}
+
+@media (max-width: 700px) {
+  .empty.first-run { padding: 38px 18px; }
+  .empty-actions { flex-direction: column; }
 }
 
 body.light .icon-button,

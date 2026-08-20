@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>TabMonger connection</title>
+  <link rel="stylesheet" href="extension.css">
+</head>
+<body class="popup-page">
+  <main class="popup">
+    <div class="brand"><img src="icons/icon.svg" alt=""><span>Tab<span>Monger</span></span></div>
+    <h1 id="popup-title">Loading connection…</h1>
+    <p id="popup-message">Your new-tab connection lives here.</p>
+    <div class="popup-target" id="popup-target" hidden></div>
+    <label class="check-row" id="popup-toggle-row" hidden>
+      <input id="popup-enabled" type="checkbox">
+      <span><strong>Use for new tabs</strong></span>
+    </label>
+    <div class="popup-actions">
+      <button class="primary" id="popup-open" type="button" disabled>Open dashboard</button>
+      <button id="popup-settings" type="button">Settings</button>
+    </div>
+  </main>
+  <script src="common.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

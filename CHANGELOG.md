@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.1.0 — Portable community release
+
+### Added
+
+- One portable ZIP with Windows, macOS, and Linux launchers, the dashboard, complete setup docs, and ready-to-load new-tab companion source
+- Chrome/Edge Manifest V3 companion with persistent unpacked Developer-mode setup
+- Firefox Manifest V3 companion source with temporary development installation instructions and a stable Gecko ID for future signing
+- Extension setup/options, toolbar pause control, optional host-scoped health checks, offline retry, and unset states
+- OS-native per-user data directories for clean installs and automatic legacy checkout-state preservation
+- Owner-only POSIX permissions for databases, backups, uploaded assets, and private state directories
+- Friendly first-run actions for adding, importing, and connecting a browser
+- Community contribution guide, extension model, issue templates, and public-release privacy gate
+- Cross-site, Host, DNS-rebinding, clickjacking, upload-traversal, and active-SVG response safeguards
+- Reproducible portable archive builder with a SHA-256 checksum
+
+### Changed
+
+- New installations default to local-link search with weather and service monitoring off until the user opts in
+- Linux user-service installs copy stable app files under `~/.local/lib` while keeping state under `~/.local/share`
+- The launcher prints both local and trusted-LAN addresses, opens the browser, detects an existing TabMonger process, and explains port fallback
+- The public site now uses restrained community support language, a stable SVG coffee icon, transparent contribution limits, a LAN/new-tab explanation, and contributor paths
+- Public examples use neutral network addresses; real operator state and environment details remain excluded
+
+### Fixed
+
+- Portable uploaded icons and backgrounds are served and included in exports from the configured data directory
+- Update installs restart an already-running user service instead of leaving old code in memory
+- Nginx cache locations retain the public site’s security headers
+- Support builds fail closed unless the configured destination is an HTTPS `buy.stripe.com` Payment Link
+
 ## 2026-08-20 — Public project foundation
 
 ### Added
@@ -49,5 +79,5 @@
 ### Brand status
 
 - `TabMonger` is the finalized product name
-- Private GitHub repository reserved as `truedezigner/tabmonger`
+- GitHub repository reserved as `truedezigner/tabmonger`
 - Final logo and favicon creation is the remaining brand task
