@@ -58,6 +58,7 @@
 
   const form = document.querySelector('[data-community-form]');
   if (form instanceof HTMLFormElement) {
+    const feedbackPanel = document.querySelector('[data-feedback-panel]');
     const submitButton = form.querySelector('[data-community-submit]');
     const formStatus = form.querySelector('[data-community-form-status]');
     const titleInput = form.querySelector('#community-title');
@@ -106,12 +107,18 @@
     });
     updateKindCopy();
 
-    document.querySelectorAll('[data-suggest-idea]').forEach((link) => {
-      link.addEventListener('click', () => {
+    document.querySelectorAll('[data-suggest-idea]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!(feedbackPanel instanceof HTMLElement)) return;
+        feedbackPanel.hidden = false;
+        button.setAttribute('aria-expanded', 'true');
         const featureKind = form.querySelector('input[name="kind"][value="feature"]');
         if (featureKind instanceof HTMLInputElement) featureKind.checked = true;
         updateKindCopy();
-        window.requestAnimationFrame(() => titleInput?.focus({ preventScroll: true }));
+        window.requestAnimationFrame(() => {
+          feedbackPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          titleInput?.focus({ preventScroll: true });
+        });
       });
     });
 

@@ -436,7 +436,7 @@ const hostPlatforms = [
       </div>
 
       <div class="community-workbench">
-        <article class="community-panel feedback-panel" aria-labelledby="feedback-form-title">
+        <article class="community-panel feedback-panel" id="suggestion-panel" data-feedback-panel aria-labelledby="feedback-form-title" hidden>
           <div class="community-panel-heading">
             <span class="panel-number" aria-hidden="true">01</span>
             <div>
@@ -510,11 +510,11 @@ const hostPlatforms = [
           <p class="poll-state" data-poll-state role="status" aria-live="polite">Loading approved feature ideas…</p>
           <ol class="poll-list" data-poll-list aria-label="Approved feature requests" hidden></ol>
 
-          <a class="poll-suggest-link" href="#feature-request-form" data-suggest-idea>
+          <button class="poll-suggest-link" type="button" data-suggest-idea aria-expanded="false" aria-controls="suggestion-panel">
             <span aria-hidden="true">+</span>
             <span><b>Suggest your own idea</b><small>Send it for review, then it can join the poll.</small></span>
             <i aria-hidden="true">→</i>
-          </a>
+          </button>
 
           <div class="poll-footer">
             <p data-vote-status role="status" aria-live="polite">One current vote per locally stored browser ID. This lightweight poll does not create an account or claim to prevent every duplicate vote.</p>

@@ -58,6 +58,9 @@ function assertCommunityExperience(html, label) {
     'action="/api/community/submissions"',
     'data-community-poll',
     'data-poll-list',
+    'data-feedback-panel',
+    'id="suggestion-panel"',
+    'aria-expanded="false"',
     'Nothing is added to the poll automatically.',
     'Feature details and general feedback stay private.',
     'Owner reviewed',
@@ -87,6 +90,7 @@ function assertCommunityExperience(html, label) {
     'window.crypto?.getRandomValues',
     'title.textContent = item.title',
     'pollList.replaceChildren()',
+    'feedbackPanel.hidden = false',
   ]) {
     if (!script.includes(contract)) throw new Error(`${label}: community script is missing safe contract: ${contract}.`);
   }
