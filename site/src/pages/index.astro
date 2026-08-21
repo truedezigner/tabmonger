@@ -438,7 +438,6 @@ const hostPlatforms = [
       <div class="community-workbench">
         <article class="community-panel feedback-panel" id="suggestion-panel" data-feedback-panel aria-labelledby="feedback-form-title" hidden>
           <div class="community-panel-heading">
-            <span class="panel-number" aria-hidden="true">01</span>
             <div>
               <p class="panel-kicker">Your idea</p>
               <h3 id="feedback-form-title">Suggest your own</h3>
@@ -494,7 +493,6 @@ const hostPlatforms = [
 
         <article class="community-panel poll-panel" aria-labelledby="feature-poll-title" data-community-poll aria-busy="true">
           <div class="community-panel-heading poll-heading">
-            <span class="panel-number" aria-hidden="true">02</span>
             <div>
               <div class="poll-title-row">
                 <div>
@@ -570,5 +568,5 @@ const hostPlatforms = [
       window.setTimeout(() => { button.textContent = 'Copy'; }, 1600);
     });
   </script>
-  <script is:inline src="/community.js" defer></script>
+  <script is:inline src="/community.js?v=2" defer></script>
 </Layout>

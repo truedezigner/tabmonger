@@ -248,8 +248,7 @@ h2 { margin-bottom: 22px; font-size: clamp(2.6rem, 5vw, 4.4rem); line-height: 1.
 .poll-panel { order: 1; }
 .feedback-panel { order: 2; }
 .feedback-panel[hidden] { display: none; }
-.community-panel-heading { display: grid; grid-template-columns: 43px minmax(0,1fr); gap: 17px; padding: 31px 31px 27px; border-bottom: 1px solid #27364d; background: rgba(20,31,46,.72); }
-.panel-number { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid #435879; border-radius: 12px; background: #172337; color: var(--primary-strong); font: 800 .69rem ui-monospace, SFMono-Regular, Consolas, monospace; }
+.community-panel-heading { display: grid; grid-template-columns: minmax(0,1fr); padding: 31px 31px 27px; border-bottom: 1px solid #27364d; background: rgba(20,31,46,.72); }
 .panel-kicker { margin-bottom: 4px; color: #7588a8; font-size: .65rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
 .community-panel-heading h3 { margin-bottom: 7px; font-size: 1.35rem; line-height: 1.2; letter-spacing: -.035em; }
 .community-panel-heading > div > p:last-child { margin: 0; color: #8b9ab0; font-size: .78rem; line-height: 1.55; }

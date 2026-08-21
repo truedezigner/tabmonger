@@ -69,7 +69,7 @@ function assertCommunityExperience(html, label) {
     if (!html.includes(marker)) throw new Error(`${label}: missing community form/poll contract: ${marker}.`);
   }
 
-  if (!html.includes('src="/community.js"') || !html.includes('defer')) {
+  if (!html.includes('src="/community.js?v=2"') || !html.includes('defer')) {
     throw new Error(`${label}: community behavior must load from the first-party deferred script.`);
   }
 
