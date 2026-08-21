@@ -2,13 +2,13 @@
 
 This directory contains the dependency-free Node 22 service behind TabMonger's
 feedback form and owner-moderated feature poll. It uses Node built-ins only. It
-does not contain an analytics SDK, public administration route, account system,
+does not contain a third-party analytics SDK, public administration route, account system,
 or third-party runtime package.
 
 The production shape is deliberately split:
 
 - The existing nginx container remains the public static server and reverse
-  proxies only `/api/community/*` to this service.
+  proxies only the exact public community routes plus the aggregate analytics event route.
 - The community service runs as UID/GID `10001`, listens on port `8081`, and is
   reachable only through the trusted local/private proxy path. Do not publish a
   direct public API port.
@@ -65,13 +65,14 @@ The response intentionally includes no submission ID or moderation detail.
 ```json
 {
   "updatedAt": "2026-08-20T20:00:00.000Z",
+  "includesStarterVotes": true,
   "items": [
-    {"id":"85b37968-7874-47bb-a36d-3b25d6485d38","title":"Add keyboard shortcuts","votes":12}
+    {"id":"85b37968-7874-47bb-a36d-3b25d6485d38","title":"Add keyboard shortcuts","votes":12,"starterVotes":5}
   ]
 }
 ```
 
-Each item has exactly `id`, `title`, and `votes`. The envelope timestamp is the
+Each item has `id`, `title`, `votes`, and `starterVotes`; the envelope also says whether starter votes are present. Project-owner starter votes are disclosed in the public UI and remain separate from browser-vote hashes. The envelope timestamp is the
 latest poll activity. Pending/rejected submissions, raw feature details,
 general feedback, moderation states, source hashes, and private timestamps are
 never selected for this response. Public reads come only from the independent
@@ -120,6 +121,7 @@ sudo podman exec tabmonger-community-api node moderate.mjs mark-reviewed <submis
 sudo podman exec tabmonger-community-api node moderate.mjs poll
 sudo podman exec tabmonger-community-api node moderate.mjs poll --all
 sudo podman exec tabmonger-community-api node moderate.mjs close <poll-item-id>
+sudo podman exec tabmonger-community-api node moderate.mjs set-starter-votes <poll-item-id> <count>
 ```
 
 Approval is allowed only for a pending feature request. It revalidates and
@@ -146,6 +148,7 @@ code must render returned titles with `textContent`, never `innerHTML`.
 
 Default in-memory fixed-window limits are:
 
+- analytics events: 240/source/minute and 20,000 total/minute;
 - submissions: 5/source/hour and 200 total/hour;
 - votes: 60/source/minute and 5,000 total/minute;
 - poll reads: 180/source/minute and 20,000 total/minute.
@@ -157,6 +160,8 @@ identifier saved with the submission.
 ## Persistence and retention
 
 `COMMUNITY_DATA_DIR/community.json` has `schemaVersion: 1` and mode `0600`.
+Aggregate website events are stored separately in `analytics.ndjson` as date,
+allowlisted event name, and coarse source category only; they expire after 180 days.
 Every mutation is serialized through one process-wide queue, applied to a copy,
 schema-validated, written to a same-directory mode-`0600` temporary file,
 flushed with `fsync`, atomically renamed, and followed by a parent-directory

@@ -7,6 +7,9 @@ RUNTIME_ENV=${RUNTIME_ENV:-${DATA_ROOT}/runtime.env}
 COMMUNITY_DATA_DIR=${COMMUNITY_DATA_DIR:-${DATA_ROOT}/community}
 BACKUP_ROOT=${BACKUP_ROOT:-${DATA_ROOT}/backups}
 PORT=${PORT:-4342}
+METRICS_PORT=${METRICS_PORT:-4343}
+CANDIDATE_PUBLIC_PORT=${CANDIDATE_PUBLIC_PORT:-54342}
+CANDIDATE_METRICS_PORT=${CANDIDATE_METRICS_PORT:-54343}
 POD_NAME=${POD_NAME:-tabmonger-community}
 SITE_CONTAINER=${SITE_CONTAINER:-tabmonger-site}
 API_CONTAINER=${API_CONTAINER:-tabmonger-community-api}
@@ -71,14 +74,16 @@ create_stack() {
   stack_pod=$1
   stack_api=$2
   stack_site=$3
-  publish=$4
-  data_directory=$5
-  api_image=$6
-  site_image=$7
+  public_publish=$4
+  metrics_publish=$5
+  data_directory=$6
+  api_image=$7
+  site_image=$8
 
   podman_cmd pod create \
     --name "$stack_pod" \
-    -p "$publish" >/dev/null
+    -p "$public_publish" \
+    -p "$metrics_publish" >/dev/null
 
   podman_cmd run -d \
     --pod "$stack_pod" \
@@ -141,6 +146,14 @@ install_generated_units() {
   sudo systemctl enable "$POD_SERVICE" >/dev/null
 }
 
+install_metrics_timer() {
+  sudo install -m 0755 "${APP_DIR}/generate-weekly-report.sh" /usr/local/sbin/tabmonger-generate-weekly-report
+  sudo install -m 0644 "${APP_DIR}/tabmonger-metrics-report.service" "${SYSTEMD_DIR}/tabmonger-metrics-report.service"
+  sudo install -m 0644 "${APP_DIR}/tabmonger-metrics-report.timer" "${SYSTEMD_DIR}/tabmonger-metrics-report.timer"
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now tabmonger-metrics-report.timer >/dev/null
+}
+
 verify_live_stack() {
   wait_for_api "$API_CONTAINER"
   wait_for_site "http://127.0.0.1:${PORT}/"
@@ -151,14 +164,23 @@ verify_live_stack() {
     echo "Origin is not bound exclusively to the expected loopback endpoint." >&2
     return 1
   fi
+  metrics_endpoint=$(podman_cmd port "$infra_id" 8082/tcp | tail -1)
+  if [ "$metrics_endpoint" != "0.0.0.0:${METRICS_PORT}" ]; then
+    echo "Metrics are not bound to the expected private-network host port." >&2
+    return 1
+  fi
   if [ "$(podman_cmd exec "$API_CONTAINER" id -u)" != "10001" ]; then
     echo "Community API is not running as its dedicated non-root user." >&2
     return 1
   fi
   sudo curl -fsS "http://127.0.0.1:${PORT}/api/community/poll" | sudo grep -q '"items"'
+  sudo curl -fsS "http://127.0.0.1:${METRICS_PORT}/metrics/" | sudo grep -q 'Private project pulse'
+  sudo curl -fsS "http://127.0.0.1:${METRICS_PORT}/api/analytics/report?days=30" | sudo grep -q '"totals"'
   admin_status=$(sudo curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/api/community/admin")
   health_status=$(sudo curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/api/community/health")
-  [ "$admin_status" = 404 ] && [ "$health_status" = 404 ]
+  report_status=$(sudo curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/api/analytics/report")
+  metrics_status=$(sudo curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/metrics/")
+  [ "$admin_status" = 404 ] && [ "$health_status" = 404 ] && [ "$report_status" = 404 ] && [ "$metrics_status" = 404 ]
 }
 
 stop_current_stack() {
@@ -189,12 +211,14 @@ restore_previous() {
   elif [ "$PREVIOUS_MODE" = "pod" ]; then
     create_stack \
       "$POD_NAME" "$API_CONTAINER" "$SITE_CONTAINER" \
-      "127.0.0.1:${PORT}:8080" "$COMMUNITY_DATA_DIR" \
+      "127.0.0.1:${PORT}:8080" "0.0.0.0:${METRICS_PORT}:8082" "$COMMUNITY_DATA_DIR" \
       "$API_ROLLBACK_IMAGE" "$SITE_ROLLBACK_IMAGE" || return 1
     install_generated_units || return 1
     podman_cmd pod stop "$POD_NAME" >/dev/null || return 1
     sudo systemctl start "$POD_SERVICE" || return 1
-    verify_live_stack || return 1
+    wait_for_api "$API_CONTAINER" || return 1
+    wait_for_site "http://127.0.0.1:${PORT}/" || return 1
+    sudo curl -fsS "http://127.0.0.1:${PORT}/api/community/poll" | sudo grep -q '"items"' || return 1
   fi
 
   echo "Previous application restored successfully." >&2
@@ -202,6 +226,7 @@ restore_previous() {
 
 on_error() {
   status=$?
+  echo "Deployment stopped at line ${BASH_LINENO[0]}. Production rollback rules are being applied." >&2
   if ! restore_previous; then
     echo "CRITICAL: automatic rollback did not become healthy; inspect TabMonger on the app host." >&2
   fi
@@ -264,6 +289,12 @@ if sudo test -f "${COMMUNITY_DATA_DIR}/community.json"; then
   sudo chmod 0600 "${BACKUP_PATH}/community.json.sha256"
   sudo sha256sum -c "${BACKUP_PATH}/community.json.sha256" >/dev/null
 fi
+if sudo test -f "${COMMUNITY_DATA_DIR}/analytics.ndjson"; then
+  sudo install -m 0600 "${COMMUNITY_DATA_DIR}/analytics.ndjson" "${BACKUP_PATH}/analytics.ndjson"
+  sudo sha256sum "${BACKUP_PATH}/analytics.ndjson" | sudo tee "${BACKUP_PATH}/analytics.ndjson.sha256" >/dev/null
+  sudo chmod 0600 "${BACKUP_PATH}/analytics.ndjson.sha256"
+  sudo sha256sum -c "${BACKUP_PATH}/analytics.ndjson.sha256" >/dev/null
+fi
 sudo find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name '20??????T??????Z' -mtime +29 -exec rm -rf -- {} +
 
 CANDIDATE_DATA=$(sudo mktemp -d "${DATA_ROOT}/.community-candidate-${DEPLOY_ID}.XXXXXX")
@@ -271,6 +302,9 @@ sudo chown 10001:10001 "$CANDIDATE_DATA"
 sudo chmod 0700 "$CANDIDATE_DATA"
 if sudo test -f "${BACKUP_PATH}/community.json"; then
   sudo install -m 0600 -o 10001 -g 10001 "${BACKUP_PATH}/community.json" "${CANDIDATE_DATA}/community.json"
+fi
+if sudo test -f "${BACKUP_PATH}/analytics.ndjson"; then
+  sudo install -m 0600 -o 10001 -g 10001 "${BACKUP_PATH}/analytics.ndjson" "${CANDIDATE_DATA}/analytics.ndjson"
 fi
 
 echo "Building and validating isolated website and community-service candidates."
@@ -283,7 +317,7 @@ podman_cmd build -t "$API_CANDIDATE_IMAGE" -f community/Containerfile .
 
 create_stack \
   "$CANDIDATE_POD" "$CANDIDATE_API" "$CANDIDATE_SITE" \
-  "127.0.0.1::8080" "$CANDIDATE_DATA" \
+  "127.0.0.1:${CANDIDATE_PUBLIC_PORT}:8080" "127.0.0.1:${CANDIDATE_METRICS_PORT}:8082" "$CANDIDATE_DATA" \
   "$API_CANDIDATE_IMAGE" "$SITE_CANDIDATE_IMAGE"
 
 candidate_infra=$(podman_cmd pod inspect --format '{{.InfraContainerID}}' "$CANDIDATE_POD")
@@ -293,6 +327,12 @@ if ! [[ "$candidate_endpoint" =~ ^127\.0\.0\.1:[0-9]+$ ]]; then
   exit 1
 fi
 CANDIDATE_URL="http://${candidate_endpoint}"
+candidate_metrics_endpoint=$(podman_cmd port "$candidate_infra" 8082/tcp | tail -1)
+if ! [[ "$candidate_metrics_endpoint" =~ ^127\.0\.0\.1:[0-9]+$ ]]; then
+  echo "Candidate metrics endpoint is not an isolated loopback port." >&2
+  exit 1
+fi
+CANDIDATE_METRICS_URL="http://${candidate_metrics_endpoint}"
 wait_for_api "$CANDIDATE_API"
 wait_for_site "${CANDIDATE_URL}/"
 
@@ -306,6 +346,7 @@ sudo grep -q 'Your rules\.' "$CANDIDATE_BODY"
 sudo grep -Fq 'data-community-form' "$CANDIDATE_BODY"
 sudo grep -Fq 'action="/api/community/submissions"' "$CANDIDATE_BODY"
 sudo grep -Fq 'data-community-poll' "$CANDIDATE_BODY"
+sudo grep -Fq 'site-analytics.js?v=1' "$CANDIDATE_BODY"
 sudo grep -Fq 'Nothing is added to the poll automatically.' "$CANDIDATE_BODY"
 sudo grep -Fq 'Feature details and general feedback stay private.' "$CANDIDATE_BODY"
 for release_asset in \
@@ -416,21 +457,39 @@ admin_status=$(sudo curl -sS -o /dev/null -w '%{http_code}' "${CANDIDATE_URL}/ap
 health_status=$(sudo curl -sS -o /dev/null -w '%{http_code}' "${CANDIDATE_URL}/api/community/health")
 [ "$admin_status" = 404 ] && [ "$health_status" = 404 ]
 
+analytics_status=$(sudo curl -sS -o "$CANDIDATE_RESPONSE" -w '%{http_code}' \
+  -H 'Origin: https://tabmonger.com' \
+  -H 'Sec-Fetch-Site: same-origin' \
+  -H 'CF-Connecting-IP: 192.0.2.14' \
+  -H 'Content-Type: application/json' \
+  --data '{"event":"page_view","source":"direct"}' \
+  "${CANDIDATE_URL}/api/analytics/event")
+[ "$analytics_status" = 202 ]
+sudo curl -fsS "${CANDIDATE_METRICS_URL}/metrics/" | sudo grep -Fq 'Private project pulse'
+sudo curl -fsS "${CANDIDATE_METRICS_URL}/api/analytics/report?days=30" | sudo grep -Eq '"page_view":[1-9][0-9]*'
+public_report_status=$(sudo curl -sS -o /dev/null -w '%{http_code}' "${CANDIDATE_URL}/api/analytics/report")
+public_metrics_status=$(sudo curl -sS -o /dev/null -w '%{http_code}' "${CANDIDATE_URL}/metrics/")
+[ "$public_report_status" = 404 ] && [ "$public_metrics_status" = 404 ]
+
 podman_cmd restart "$CANDIDATE_API" >/dev/null
 wait_for_api "$CANDIDATE_API"
 sudo curl -fsS "${CANDIDATE_URL}/api/community/poll" | sudo grep -Fq "$feature_title"
+sudo curl -fsS "${CANDIDATE_METRICS_URL}/api/analytics/report?days=30" | sudo grep -Eq '"page_view":[1-9][0-9]*'
 
 echo "Candidates passed. Switching the loopback origin with automatic rollback protection."
 CUTOVER_STARTED=true
 stop_current_stack
 create_stack \
   "$POD_NAME" "$API_CONTAINER" "$SITE_CONTAINER" \
-  "127.0.0.1:${PORT}:8080" "$COMMUNITY_DATA_DIR" \
+  "127.0.0.1:${PORT}:8080" "0.0.0.0:${METRICS_PORT}:8082" "$COMMUNITY_DATA_DIR" \
   "$API_CANDIDATE_IMAGE" "$SITE_CANDIDATE_IMAGE"
 install_generated_units
 podman_cmd pod stop "$POD_NAME" >/dev/null
 sudo systemctl start "$POD_SERVICE"
 verify_live_stack
+install_metrics_timer
+sudo systemctl start tabmonger-metrics-report.service
+sudo test -s "${DATA_ROOT}/analytics-reports/latest.md"
 
 podman_cmd tag "$SITE_CANDIDATE_IMAGE" "$SITE_IMAGE_NAME"
 podman_cmd tag "$API_CANDIDATE_IMAGE" "$API_IMAGE_NAME"
@@ -440,6 +499,7 @@ trap - ERR
 podman_cmd pod ps --filter name="$POD_NAME"
 podman_cmd ps --filter pod="$POD_NAME"
 printf '\nTabMonger website: http://127.0.0.1:%s\n' "$PORT"
+printf 'Private metrics: http://<server-lan-address>:%s/metrics/\n' "$METRICS_PORT"
 printf 'Moderation: sudo podman exec %s node moderate.mjs list --status pending\n' "$API_CONTAINER"
 if [ "$ROLLBACK_AVAILABLE" = true ]; then
   printf 'Rollback images preserved for deploy %s.\n' "$DEPLOY_ID"

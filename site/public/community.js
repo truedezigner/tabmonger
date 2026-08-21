@@ -112,6 +112,7 @@
         if (!(feedbackPanel instanceof HTMLElement)) return;
         feedbackPanel.hidden = false;
         button.setAttribute('aria-expanded', 'true');
+        window.dispatchEvent(new CustomEvent('tabmonger:analytics', { detail: { event: 'feedback_open' } }));
         const featureKind = form.querySelector('input[name="kind"][value="feature"]');
         if (featureKind instanceof HTMLInputElement) featureKind.checked = true;
         updateKindCopy();
@@ -179,6 +180,7 @@
             : 'Thank you. Your request is waiting for owner review; only an approved title can join the poll.',
           'success'
         );
+        window.dispatchEvent(new CustomEvent('tabmonger:analytics', { detail: { event: 'feedback_submit' } }));
       } catch (error) {
         if (error?.status === 429) {
           setMessage(formStatus, 'Please wait a little before sending another message.', 'error');
@@ -200,6 +202,7 @@
   const voteStatus = document.querySelector('[data-vote-status]');
   const pollUpdated = document.querySelector('[data-poll-updated]');
   const refreshButton = document.querySelector('[data-poll-refresh]');
+  const starterNote = document.querySelector('[data-starter-votes-note]');
 
   if (!(pollPanel instanceof HTMLElement) || !(pollList instanceof HTMLOListElement)) return;
 
@@ -220,13 +223,15 @@
       const key = String(item.id);
       const title = item.title.trim();
       const numericVotes = Number(item.votes);
-      if (!key || key.length > 128 || !title || title.length > 80 || seen.has(key) || !Number.isFinite(numericVotes)) return [];
+      const starterVotes = Number(item.starterVotes ?? 0);
+      if (!key || key.length > 128 || !title || title.length > 80 || seen.has(key) || !Number.isFinite(numericVotes) || !Number.isFinite(starterVotes)) return [];
       seen.add(key);
       return [{
         id: item.id,
         key,
         title,
-        votes: Math.max(0, Math.floor(numericVotes))
+        votes: Math.max(0, Math.floor(numericVotes)),
+        starterVotes: Math.max(0, Math.floor(starterVotes))
       }];
     });
   };
@@ -265,9 +270,12 @@
 
   const renderPoll = (items) => {
     currentItems = items;
+    if (starterNote instanceof HTMLElement) {
+      starterNote.hidden = !items.some((item) => item.starterVotes > 0);
+    }
     const renderSignature = JSON.stringify({
       selectedFeatureId,
-      items: items.map(({ key, title, votes }) => [key, title, votes])
+      items: items.map(({ key, title, votes, starterVotes }) => [key, title, votes, starterVotes])
     });
     if (renderSignature === currentRenderSignature) {
       if (items.length === 0) {
@@ -464,6 +472,7 @@
           : 'Vote saved, but this browser could not remember which title you chose. Your anonymous voting ID remains unchanged.',
         rememberedChoice ? 'success' : 'error'
       );
+      window.dispatchEvent(new CustomEvent('tabmonger:analytics', { detail: { event: 'poll_vote' } }));
       await loadPoll();
     } catch (error) {
       if (error?.status === 429) {

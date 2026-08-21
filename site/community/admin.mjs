@@ -66,6 +66,13 @@ async function dispatch(store, request) {
       return store.markReviewed(validId(request.id));
     case 'close':
       return store.closePollItem(validId(request.id));
+    case 'set-starter-votes': {
+      const count = Number(request.count);
+      if (!Number.isSafeInteger(count) || count < 0 || count > 100_000) {
+        throw new AdminError('invalid_count', 'Starter votes must be an integer from 0 to 100000.');
+      }
+      return store.setStarterVotes(validId(request.id), count);
+    }
     default:
       throw new AdminError('unknown_command', 'Unknown moderation command.');
   }

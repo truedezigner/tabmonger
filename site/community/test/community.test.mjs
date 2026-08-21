@@ -212,15 +212,24 @@ test('pending and feedback content stay private; approval copies only an owner-a
   await sendAdminCommand(app.service.adminSocketPath, { command: 'mark-reviewed', id: feedback.id });
 
   const publicPoll = await poll(app);
-  assert.deepEqual(publicPoll.items, [{ id: approved.id, title: 'Keyboard-first navigation', votes: 0 }]);
+  assert.deepEqual(publicPoll.items, [{ id: approved.id, title: 'Keyboard-first navigation', votes: 0, starterVotes: 0 }]);
+  assert.equal(publicPoll.includesStarterVotes, false);
   assert.equal(typeof publicPoll.updatedAt, 'string');
-  assert.deepEqual(Object.keys(publicPoll.items[0]).sort(), ['id', 'title', 'votes']);
+  assert.deepEqual(Object.keys(publicPoll.items[0]).sort(), ['id', 'starterVotes', 'title', 'votes']);
   const serializedPublic = JSON.stringify(publicPoll);
   assert.doesNotMatch(serializedPublic, /Original private|FEATURE-DETAIL|GENERAL-FEEDBACK|status|sourceHash|submittedAt/);
 
   const shown = await sendAdminCommand(app.service.adminSocketPath, { command: 'show', id: feature.id });
   assert.equal(shown.title, 'Original private feature wording');
   assert.equal(shown.details, 'FEATURE-DETAIL-PRIVATE should never appear in the public poll.');
+
+  await sendAdminCommand(app.service.adminSocketPath, {
+    command: 'set-starter-votes', id: approved.id, count: 12,
+  });
+  const seededPoll = await poll(app);
+  assert.equal(seededPoll.includesStarterVotes, true);
+  assert.equal(seededPoll.items[0].votes, 12);
+  assert.equal(seededPoll.items[0].starterVotes, 12);
 
   const disk = await readFile(path.join(app.dataDir, 'community.json'), 'utf8');
   assert.doesNotMatch(disk, /sourceHash|203\.0\.113\./);
@@ -365,7 +374,7 @@ test('retention removes old pending, rejected, and reviewed rows but preserves a
   assert.equal(await store.getSubmission(pending.id), null);
   assert.equal(await store.getSubmission(approvedSubmission.id), null);
   const durablePoll = await store.getPublicPoll();
-  assert.deepEqual(durablePoll.items, [{ id: approved.id, title: 'Durable approved title', votes: 1 }]);
+  assert.deepEqual(durablePoll.items, [{ id: approved.id, title: 'Durable approved title', votes: 1, starterVotes: 0 }]);
   assert.equal(typeof durablePoll.updatedAt, 'string');
 });
 
@@ -486,6 +495,51 @@ test('submission rate limiting is keyed by a salted source hash', async (t) => {
     kind: 'feature', title: 'Other source request', details: 'A request from a different source.', website: '',
   }, { ip: '203.0.113.99' });
   assert.equal(response.status, 202);
+});
+
+test('aggregate analytics accepts only allowlisted counters and stores no visitor details', async (t) => {
+  const app = await fixture();
+  t.after(() => app.close());
+
+  let response = await post(app, '/api/analytics/event', { event: 'page_view', source: 'search' }, {
+    ip: '198.51.100.77',
+    headers: { 'User-Agent': 'Private Browser Detail', Referer: 'https://search.example/private?q=tabmonger' },
+  });
+  assert.equal(response.status, 202);
+  response = await post(app, '/api/analytics/event', { event: 'download_portable', source: 'github' });
+  assert.equal(response.status, 202);
+
+  response = await post(app, '/api/analytics/event', { event: 'page_view', source: 'search', visitor: 'not-allowed' });
+  assert.equal(response.status, 400);
+  response = await post(app, '/api/analytics/event', { event: 'unknown', source: 'direct' });
+  assert.equal(response.status, 400);
+  response = await post(app, '/api/analytics/event', { event: 'page_view', source: 'direct' }, { origin: 'https://evil.example' });
+  assert.equal(response.status, 403);
+
+  response = await fetch(`${app.baseUrl}/api/analytics/report?days=30`);
+  assert.equal(response.status, 200);
+  let report = await response.json();
+  assert.equal(report.totals.page_view, 1);
+  assert.equal(report.totals.download_portable, 1);
+  assert.equal(report.sources.search, 1);
+  assert.equal(report.sources.github, 1);
+  assert.equal(report.daily.length, 30);
+  assert.equal(report.daily.at(-1).page_view, 1);
+
+  const stored = await readFile(path.join(app.dataDir, 'analytics.ndjson'), 'utf8');
+  assert.match(stored, /"event":"page_view"/);
+  assert.doesNotMatch(stored, /198\.51\.100\.77|Private Browser Detail|search\.example|visitor|sourceHash/);
+
+  await app.restart();
+  response = await fetch(`${app.baseUrl}/api/analytics/report?days=30`);
+  report = await response.json();
+  assert.equal(report.totals.page_view, 1);
+  assert.equal(report.totals.download_portable, 1);
+
+  response = await fetch(`${app.baseUrl}/api/analytics/report?days=181`);
+  assert.equal(response.status, 400);
+  response = await fetch(`${app.baseUrl}/api/analytics/report?days=30&raw=true`);
+  assert.equal(response.status, 400);
 });
 
 test('startup fails closed for a missing or short hash salt and for corrupt persistent JSON', async (t) => {

@@ -1,4 +1,5 @@
 const DEFAULT_LIMITS = Object.freeze({
+  analytics: { perSource: 240, global: 20_000, windowMs: 60 * 1_000 },
   submission: { perSource: 5, global: 200, windowMs: 60 * 60 * 1_000 },
   vote: { perSource: 60, global: 5_000, windowMs: 60 * 1_000 },
   poll: { perSource: 180, global: 20_000, windowMs: 60 * 1_000 },

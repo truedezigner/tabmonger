@@ -1,6 +1,6 @@
 # TabMonger website
 
-The public Astro site for `tabmonger.com`. Static HTML, CSS, and first-party JavaScript are served by Nginx. A separate dependency-free Node service accepts private feedback and serves the owner-moderated, title-only feature poll.
+The public Astro site for `tabmonger.com`. Static HTML, CSS, and first-party JavaScript are served by Nginx. A separate dependency-free Node service accepts private feedback, serves the owner-moderated title-only feature poll, and keeps privacy-minimized aggregate website counters.
 
 ## Local development
 
@@ -41,6 +41,7 @@ The public routes are deliberately narrow:
 - `POST /api/community/submissions` accepts either private general feedback or a pending feature request.
 - `GET /api/community/poll` returns approved poll IDs, reviewed titles, totals, and an update time—nothing from the private moderation record.
 - `POST /api/community/vote` records one current selection per locally stored anonymous browser ID.
+- `POST /api/analytics/event` accepts only an allowlisted event and coarse source category; it stores no visitor identifier.
 
 Automated filtering rejects markup, URLs, hidden controls, common abuse, threats, profanity, promotional spam, and repetitive junk. Filtering never publishes anything. Every feature remains private until the owner runs an explicit approval command through the API container's mode-`0600` Unix socket. There is no public moderation endpoint.
 
@@ -52,6 +53,7 @@ sudo podman exec tabmonger-community-api node moderate.mjs reject <submission-id
 sudo podman exec tabmonger-community-api node moderate.mjs mark-reviewed <submission-id>
 sudo podman exec tabmonger-community-api node moderate.mjs poll
 sudo podman exec tabmonger-community-api node moderate.mjs close <poll-item-id>
+sudo podman exec tabmonger-community-api node moderate.mjs set-starter-votes <poll-item-id> <count>
 ```
 
 See [`community/README.md`](community/README.md) for the complete API, moderation, filtering, retention, and storage contract.
@@ -60,13 +62,15 @@ See [`community/README.md`](community/README.md) for the complete API, moderatio
 
 The CT source path is `/opt/apps/tabmonger-site`. Production uses the `tabmonger-community` Podman pod:
 
-- `tabmonger-site` runs Nginx on the pod's port `8080`.
+- `tabmonger-site` runs the public Nginx site on pod port `8080` and the private metrics view on pod port `8082`.
 - `tabmonger-community-api` runs non-root on pod-loopback port `8081`, with a read-only root filesystem and only its data mount writable.
-- The pod publishes Nginx as `127.0.0.1:4342`; the API has no host port and Nginx exposes only the three exact public routes above.
+- The pod publishes the public site as `127.0.0.1:4342`. Production may publish port `8082` as `<LAN-address>:4343` for the private `/metrics/` dashboard. The API has no host port; public Nginx exposes only the four exact public routes above.
 - Private state is stored at `/opt/apps/data/tabmonger-site/community`; the runtime salt stays in mode-`0600` `runtime.env` and is never committed.
 - Generated Podman pod/container systemd units provide boot persistence.
 
-`deploy-tabmonger-site.sh` builds both images and runs their tests before creating an isolated candidate pod with a disposable copy of persistent data. Candidate checks cover the static site, support/download links, security headers, origin enforcement, automated filtering, pending privacy, private approval, title-only publication, voting, restart persistence, and the absence of public admin/health routes.
+`deploy-tabmonger-site.sh` builds both images and runs their tests before creating an isolated candidate pod with a disposable copy of persistent data. Candidate checks cover the static site, support/download links, security headers, origin enforcement, automated filtering, pending privacy, private approval, title-only publication, voting, analytics allowlists, the private metrics view, restart persistence, and the absence of public admin/health/report routes.
+
+See [`../ANALYTICS.md`](../ANALYTICS.md) and [`../GROWTH-PLAN.md`](../GROWTH-PLAN.md) for the data contract and measurement plan.
 
 Only a passing candidate can replace the loopback origin. The script keeps timestamped rollback images, a checksummed state/configuration backup, and at most 30 days of protected deployment backups. Automatic rollback preserves the current community data rather than restoring an older copy over new submissions or votes.
 

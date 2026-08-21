@@ -158,7 +158,7 @@ const hostPlatforms = [
           <a class="button button-primary" href={downloadUrl}>Download TabMonger <span aria-hidden="true">↓</span></a>
           <a class="button" href="#install">See the simple setup</a>
         </div>
-        <p class="hero-note">Free and open source, always. No telemetry. No account. Built to be extended.</p>
+        <p class="hero-note">Free and open source, always. No app telemetry. No account. Built to be extended.</p>
       </div>
 
       <div class="dashboard-stage" aria-label="TabMonger dashboard preview">
@@ -507,6 +507,7 @@ const hostPlatforms = [
 
           <p class="poll-state" data-poll-state role="status" aria-live="polite">Loading approved feature ideas…</p>
           <ol class="poll-list" data-poll-list aria-label="Approved feature requests" hidden></ol>
+          <p class="poll-starter-note" data-starter-votes-note hidden>Totals include project-owner starter votes.</p>
 
           <button class="poll-suggest-link" type="button" data-suggest-idea aria-expanded="false" aria-controls="suggestion-panel">
             <span aria-hidden="true">+</span>
@@ -552,7 +553,7 @@ const hostPlatforms = [
     <div class="shell footer-grid">
       <div><Logo /><p>A quiet home for everything you host.</p></div>
       <div><b>Project</b><a href="#features">Features</a><a href="#install">Setup</a><a href="#downloads">Downloads</a><a href={extensionsUrl}>New-tab companion source</a><a href={githubUrl}>Source code</a></div>
-      <div><b>Principles</b><span>Private by default</span><span>No telemetry</span><a href="/privacy/">Privacy</a></div>
+      <div><b>Principles</b><span>Private by default</span><span>No app telemetry</span><a href="/privacy/">Privacy</a></div>
       <div><b>Community</b><a href="#community-feedback">Feedback &amp; feature poll</a><a href={`${githubUrl}/issues`}>GitHub issues</a>{supportReady ? <a href={supportUrl} target="_blank" rel="noopener">Optional contribution</a> : <span>Contributions opening soon</span>}<a href="/support-policy/">Support policy</a></div>
     </div>
     <div class="shell footer-bottom"><span>© {new Date().getFullYear()} TabMonger</span><span>Built small on purpose.</span></div>
@@ -568,5 +569,6 @@ const hostPlatforms = [
       window.setTimeout(() => { button.textContent = 'Copy'; }, 1600);
     });
   </script>
-  <script is:inline src="/community.js?v=2" defer></script>
+  <script is:inline src="/site-analytics.js?v=1" defer></script>
+  <script is:inline src="/community.js?v=3" defer></script>
 </Layout>

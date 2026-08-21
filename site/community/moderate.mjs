@@ -13,6 +13,7 @@ Usage:
   node moderate.mjs mark-reviewed <submission-id>
   node moderate.mjs poll [--all]
   node moderate.mjs close <poll-item-id>
+  node moderate.mjs set-starter-votes <poll-item-id> <count>
 
 The CLI talks only to the running service's private Unix socket. There is no
 public moderation API. Set COMMUNITY_ADMIN_SOCKET when using a non-default path.
@@ -61,6 +62,15 @@ function requestFromArguments(arguments_) {
   if (command === 'close') {
     if (args.length !== 1) throw new Error('close requires exactly one poll-item ID.');
     return { command, id: args[0] };
+  }
+
+  if (command === 'set-starter-votes') {
+    if (args.length !== 2) throw new Error('set-starter-votes requires one poll-item ID and one count.');
+    const count = Number(args[1]);
+    if (!Number.isSafeInteger(count) || count < 0 || count > 100_000) {
+      throw new Error('Starter vote count must be an integer from 0 to 100000.');
+    }
+    return { command, id: args[0], count };
   }
 
   if (command === 'approve') {

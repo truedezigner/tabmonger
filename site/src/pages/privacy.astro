@@ -6,8 +6,13 @@ import Logo from '../components/Logo.astro';
   <main class="legal shell">
     <a href="/" class="brand-link"><Logo /></a>
     <p class="eyebrow"><span></span> Privacy</p>
-    <h1>The short version: no advertising profile, no analytics.</h1>
-    <p class="legal-lede">The TabMonger website uses no analytics, advertising pixels, user accounts, cookies, or third-party JavaScript. Its community poll keeps a strictly necessary random voting identifier and your current poll choice in local browser storage so you can vote without creating an account.</p>
+    <h1>The short version: useful totals, no advertising profile.</h1>
+    <p class="legal-lede">The TabMonger website keeps small first-party aggregate counters so the project owner can understand traffic, downloads, and community interest. It uses no advertising pixels, analytics company, user account, tracking cookie, or third-party JavaScript. The downloaded dashboard and browser companions remain telemetry-free.</p>
+    <section>
+      <h2>Aggregate website metrics</h2>
+      <p>For each allowlisted website event, the server stores only the UTC date, a general action such as a page view or download click, and a coarse source category such as direct, search, GitHub, or Reddit. Raw referral URLs never leave your browser. The analytics store does not contain IP addresses, one-way source hashes, cookies, browser identifiers, user agents, full URLs, query strings, or fingerprints.</p>
+      <p>A salted one-way source hash may exist briefly in server memory to rate-limit abuse. It is not written with an analytics event. Aggregate records expire after 180 days and are used only to improve TabMonger, not to build or sell advertising profiles.</p>
+    </section>
     <section>
       <h2>Ordinary server logs</h2>
       <p>The web host may temporarily record standard technical request information such as IP address, requested path, browser user agent, and timestamp for reliability and abuse prevention.</p>
@@ -19,7 +24,8 @@ import Logo from '../components/Logo.astro';
     <section>
       <h2>Community feedback and feature poll</h2>
       <p>The optional community form asks for a short title and message, but not your name or email address. General feedback stays private. A feature request remains private and pending until the project owner reviews it; if approved, only its title and vote total appear in the public poll. Submitted details, moderation status, and abuse-prevention data are never returned by the public poll API.</p>
-      <p>The server briefly uses a salted one-way source hash—not the raw network address—in memory to rate-limit spam; it is not saved with your message. It stores only a one-way hash of the random voting identifier kept in your browser. Your browser also saves the selected poll-item ID so it can mark your current choice. These values are used only to record, remember, and change that choice; they are not shared with analytics or advertising services.</p>
+      <p>The server briefly uses a salted one-way source hash—not the raw network address—in memory to rate-limit spam; it is not saved with your message. It stores only a one-way hash of the random voting identifier kept in your browser. Your browser also saves the selected poll-item ID so it can mark your current choice. These values are used only to record, remember, and change that choice; neither identifier is included in the aggregate website metrics.</p>
+      <p>Poll totals may include clearly disclosed project-owner starter votes. Starter votes are stored separately from anonymous browser votes and are never represented as individual visitors.</p>
       <p>Rejected submissions, reviewed general feedback, and the private source material behind approved requests are automatically removed after 30 days. Unreviewed submissions expire after 180 days. Approved feature titles and anonymous votes remain public while that poll option is active; closing an option removes its votes immediately and keeps its title privately for at most 30 more days. Protected deployment backups are kept for no longer than 30 days.</p>
     </section>
     <section>

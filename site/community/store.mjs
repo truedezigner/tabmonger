@@ -122,6 +122,7 @@ function assertState(state) {
       || !UUID_V4.test(item.sourceSubmissionId)
       || typeof item.title !== 'string'
       || typeof item.active !== 'boolean'
+      || (item.starterVotes !== undefined && (!Number.isSafeInteger(item.starterVotes) || item.starterVotes < 0 || item.starterVotes > 100_000))
       || !validTimestamp(item.createdAt)
       || !validTimestamp(item.updatedAt)
     ) {
@@ -462,6 +463,7 @@ export class CommunityStore {
         id: randomUUID(),
         sourceSubmissionId: submission.id,
         title: checkedTitle,
+        starterVotes: 0,
         active: true,
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -536,6 +538,19 @@ export class CommunityStore {
     });
   }
 
+  setStarterVotes(id, count) {
+    return this.#mutate((state) => {
+      if (!Number.isSafeInteger(count) || count < 0 || count > 100_000) {
+        throw new StoreError('invalid_starter_votes', 'Starter votes must be an integer from 0 to 100000.', 400);
+      }
+      const item = state.pollItems.find((entry) => entry.id === id);
+      if (!item) throw new StoreError('not_found', 'Poll item not found.', 404);
+      item.starterVotes = count;
+      item.updatedAt = this.#now().toISOString();
+      return { id: item.id, title: item.title, starterVotes: count };
+    });
+  }
+
   listPollItems({ includeArchived = false } = {}) {
     return this.#read((state) => {
       const counts = new Map(state.pollItems.map((item) => [item.id, 0]));
@@ -548,7 +563,8 @@ export class CommunityStore {
           id: item.id,
           title: item.title,
           active: item.active,
-          votes: counts.get(item.id) ?? 0,
+          votes: (counts.get(item.id) ?? 0) + (item.starterVotes ?? 0),
+          starterVotes: item.starterVotes ?? 0,
           createdAt: item.createdAt,
           ...(item.closedAt === undefined ? {} : { closedAt: item.closedAt }),
         }))
@@ -571,9 +587,15 @@ export class CommunityStore {
       ].sort().at(-1);
       return {
         updatedAt: pollActivity,
+        includesStarterVotes: state.pollItems.some((item) => item.active && (item.starterVotes ?? 0) > 0),
         items: state.pollItems
           .filter((item) => item.active)
-          .map((item) => ({ id: item.id, title: item.title, votes: counts.get(item.id) ?? 0 }))
+          .map((item) => ({
+            id: item.id,
+            title: item.title,
+            votes: (counts.get(item.id) ?? 0) + (item.starterVotes ?? 0),
+            starterVotes: item.starterVotes ?? 0,
+          }))
           .sort((left, right) => (
             right.votes - left.votes
             || left.title.localeCompare(right.title, 'en-US')

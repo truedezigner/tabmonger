@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Community signals
+
+### Added
+
+- Privacy-minimized aggregate metrics for the public marketing website, with no cookies, visitor identifiers, raw referrers, or app telemetry
+- A LAN-only metrics dashboard and server-generated weekly Markdown report
+- A documented twelve-week open-source growth plan and measurement contract
+- Clearly disclosed project-owner starter votes for the community feature poll
+
 ## 1.2.0 — Per-tile dark mode
 
 ### Added

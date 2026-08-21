@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <title>TabMonger Metrics</title>
+  <link rel="stylesheet" href="/metrics/metrics.css" />
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow"><span></span> Private project pulse</p>
+        <h1>TabMonger <em>metrics</em></h1>
+        <p class="lede">A small, aggregate view of what helps people discover and try the project.</p>
+      </div>
+      <div class="controls">
+        <label for="range">Window</label>
+        <select id="range">
+          <option value="7">7 days</option>
+          <option value="30" selected>30 days</option>
+          <option value="90">90 days</option>
+          <option value="180">180 days</option>
+        </select>
+        <button id="refresh" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <p id="status" class="status" role="status" aria-live="polite">Loading the latest counters…</p>
+
+    <section class="summary" aria-label="Summary metrics">
+      <article><span>Traffic</span><strong id="views">—</strong><small>page views</small></article>
+      <article><span>Downloads</span><strong id="downloads">—</strong><small>app + companions</small></article>
+      <article><span>Project interest</span><strong id="github">—</strong><small>GitHub opens</small></article>
+      <article><span>Community</span><strong id="community">—</strong><small>votes + feedback</small></article>
+      <article><span>Support</span><strong id="support">—</strong><small>checkout opens</small></article>
+    </section>
+
+    <section class="grid">
+      <article class="panel trend-panel">
+        <div class="panel-heading"><div><span>Daily trend</span><h2>Visits and downloads</h2></div><small id="range-label"></small></div>
+        <div id="trend" class="trend" aria-label="Daily analytics chart"></div>
+        <div class="legend"><span><i class="visit-dot"></i>Page views</span><span><i class="download-dot"></i>Downloads</span></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-heading"><div><span>Discovery</span><h2>Traffic sources</h2></div></div>
+        <ol id="sources" class="ranked-list"></ol>
+      </article>
+
+      <article class="panel">
+        <div class="panel-heading"><div><span>Conversion signals</span><h2>Actions people take</h2></div></div>
+        <ol id="events" class="ranked-list"></ol>
+      </article>
+    </section>
+
+    <footer>
+      <p>Aggregate marketing-site counters only. No cookies, visitor IDs, raw referrers, IP addresses, or app telemetry.</p>
+      <time id="updated"></time>
+    </footer>
+  </main>
+  <script src="/metrics/metrics.js" defer></script>
+</body>
+</html>
+

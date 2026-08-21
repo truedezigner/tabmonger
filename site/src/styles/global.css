@@ -291,6 +291,8 @@ h2 { margin-bottom: 22px; font-size: clamp(2.6rem, 5vw, 4.4rem); line-height: 1.
 .poll-state[data-tone="error"] { color: #d79aa3; }
 .poll-list { display: grid; gap: 10px; margin: 0; padding: 25px 27px 28px; list-style: none; }
 .poll-list[hidden] { display: none; }
+.poll-starter-note { margin: -15px 27px 22px; color: #687991; font-size: .64rem; line-height: 1.4; }
+.poll-starter-note[hidden] { display: none; }
 .poll-choice { position: relative; width: 100%; min-height: 61px; display: grid; grid-template-columns: 20px minmax(0,1fr) auto; column-gap: 11px; row-gap: 9px; align-items: center; padding: 14px 15px 13px; overflow: hidden; border: 1px solid #30415b; border-radius: 13px; background: #0b121b; color: var(--ink); cursor: pointer; text-align: left; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
 .poll-choice-results { min-height: 82px; }
 .poll-choice:hover { border-color: #52698f; background: #111c2a; transform: translateY(-1px); }

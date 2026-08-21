@@ -134,5 +134,7 @@ The public Astro website lives under `site/` and has its own build and checkout 
 
 - [Installation and LAN setup](docs/INSTALL.md)
 - [Extending TabMonger](docs/EXTENDING.md)
+- [Growth plan](GROWTH-PLAN.md)
+- [Website analytics](ANALYTICS.md)
 - [Project architecture and decisions](PROJECT-NOTES.md)
 - [Changelog](CHANGELOG.md)

@@ -5,6 +5,9 @@ const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const siteRoot = new URL('..', import.meta.url);
 const builtPage = new URL('../dist/index.html', import.meta.url);
 const builtCommunityScript = new URL('../dist/community.js', import.meta.url);
+const builtAnalyticsScript = new URL('../dist/site-analytics.js', import.meta.url);
+const builtMetricsPage = new URL('../dist/metrics/index.html', import.meta.url);
+const builtMetricsScript = new URL('../dist/metrics/metrics.js', import.meta.url);
 const builtPrivacyPage = new URL('../dist/privacy/index.html', import.meta.url);
 const stripeHost = ['buy', 'stripe', 'com'].join('.');
 const smokeCheckoutUrl = `https://${stripeHost}/support-smoke-placeholder`;
@@ -51,6 +54,9 @@ function build(label, overrides, shouldPass = true) {
 
 function assertCommunityExperience(html, label) {
   const script = readFileSync(builtCommunityScript, 'utf8');
+  const analytics = readFileSync(builtAnalyticsScript, 'utf8');
+  const metrics = readFileSync(builtMetricsPage, 'utf8');
+  const metricsScript = readFileSync(builtMetricsScript, 'utf8');
   const privacy = readFileSync(builtPrivacyPage, 'utf8');
 
   for (const marker of [
@@ -69,7 +75,7 @@ function assertCommunityExperience(html, label) {
     if (!html.includes(marker)) throw new Error(`${label}: missing community form/poll contract: ${marker}.`);
   }
 
-  if (!html.includes('src="/community.js?v=2"') || !html.includes('defer')) {
+  if (!html.includes('src="/community.js?v=3"') || !html.includes('src="/site-analytics.js?v=1"') || !html.includes('defer')) {
     throw new Error(`${label}: community behavior must load from the first-party deferred script.`);
   }
 
@@ -97,6 +103,21 @@ function assertCommunityExperience(html, label) {
 
   for (const unsafeSink of ['.innerHTML', '.outerHTML', 'insertAdjacentHTML', 'document.write', 'eval(']) {
     if (script.includes(unsafeSink)) throw new Error(`${label}: community script contains unsafe DOM/code sink ${unsafeSink}.`);
+    if (analytics.includes(unsafeSink)) throw new Error(`${label}: analytics script contains unsafe DOM/code sink ${unsafeSink}.`);
+    if (metricsScript.includes(unsafeSink)) throw new Error(`${label}: metrics script contains unsafe DOM/code sink ${unsafeSink}.`);
+  }
+
+  for (const analyticsContract of [
+    "const ENDPOINT = '/api/analytics/event'",
+    "'page_view'",
+    "'download_portable'",
+    "'poll_vote'",
+    'JSON.stringify({ event, source })',
+  ]) {
+    if (!analytics.includes(analyticsContract)) throw new Error(`${label}: analytics script is missing ${analyticsContract}.`);
+  }
+  if (!metrics.includes('Private project pulse') || !metricsScript.includes('/api/analytics/report?days=')) {
+    throw new Error(`${label}: private metrics assets are incomplete.`);
   }
 
   for (const privacyDisclosure of [
@@ -104,6 +125,9 @@ function assertCommunityExperience(html, label) {
     'only its title and vote total appear in the public poll',
     'automatically removed after 30 days',
     'Unreviewed submissions expire after 180 days',
+    'Aggregate website metrics',
+    'Aggregate records expire after 180 days',
+    'downloaded dashboard and browser companions remain telemetry-free',
   ]) {
     if (!privacy.includes(privacyDisclosure)) {
       throw new Error(`${label}: privacy page is missing community disclosure: ${privacyDisclosure}.`);

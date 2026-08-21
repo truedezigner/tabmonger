@@ -1,0 +1,9 @@
+[Unit]
+Description=Generate TabMonger aggregate weekly metrics report
+After=pod-tabmonger-community.service
+Wants=pod-tabmonger-community.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/tabmonger-generate-weekly-report
+

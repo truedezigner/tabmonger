@@ -8,6 +8,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createAdminServer } from './admin.mjs';
+import { AnalyticsError, AnalyticsStore, validateAnalyticsEvent } from './analytics.mjs';
 import { InputError, validateSubmission, validateVote } from './moderation.mjs';
 import { RateLimiter } from './rate-limit.mjs';
 import { CommunityStore, StoreError } from './store.mjs';
@@ -17,7 +18,7 @@ const DEFAULT_ORIGINS = ['https://tabmonger.com', 'https://www.tabmonger.com'];
 const MIN_SALT_BYTES = 32;
 const MAX_SALT_BYTES = 4_096;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1_000;
-const API_PREFIX = '/api/community/';
+const API_PREFIX = '/api/';
 
 const MIME_TYPES = new Map([
   ['.avif', 'image/avif'],
@@ -361,8 +362,35 @@ async function serveStatic(request, response, staticRoot) {
 
 async function apiRequest(request, response, context) {
   const url = requestUrl(request);
-  if (url.search || url.hash) throw new HttpError(400, 'query_not_allowed');
+  if (url.pathname !== '/api/analytics/report' && (url.search || url.hash)) {
+    throw new HttpError(400, 'query_not_allowed');
+  }
   const sourceHash = hmac(context.config.salt, 'source', clientAddress(request, context.config.trustProxy));
+
+  if (url.pathname === '/api/analytics/event') {
+    if (request.method !== 'POST') {
+      response.setHeader('Allow', 'POST');
+      throw new HttpError(405, 'method_not_allowed');
+    }
+    if (!exactSameOrigin(request, context.config.allowedOrigins)) throw new HttpError(403, 'forbidden');
+    if (!rateLimit(response, context.limiter, 'analytics', sourceHash)) return;
+    const event = validateAnalyticsEvent(await readJson(request, 1_024));
+    await context.analytics.record(event);
+    json(response, 202, { ok: true });
+    return;
+  }
+
+  if (url.pathname === '/api/analytics/report') {
+    if (request.method !== 'GET') {
+      response.setHeader('Allow', 'GET');
+      throw new HttpError(405, 'method_not_allowed');
+    }
+    if ([...url.searchParams.keys()].some((key) => key !== 'days')) {
+      throw new HttpError(400, 'query_not_allowed');
+    }
+    json(response, 200, await context.analytics.report(url.searchParams.get('days') ?? 30));
+    return;
+  }
 
   if (url.pathname === '/api/community/health') {
     if (request.method !== 'GET') {
@@ -423,7 +451,7 @@ function publicError(response, error, api) {
   }
   let status = 500;
   let code = 'internal_error';
-  if (error instanceof HttpError || error instanceof StoreError) {
+  if (error instanceof HttpError || error instanceof StoreError || error instanceof AnalyticsError) {
     status = error.status;
     code = error.code;
   } else if (error instanceof InputError) {
@@ -448,8 +476,10 @@ export async function createCommunityService(options = {}) {
     },
   });
   await store.init();
+  const analytics = new AnalyticsStore({ dataDir: config.dataDir, now: config.now });
+  await analytics.init();
   const limiter = new RateLimiter({ limits: config.rateLimits });
-  const context = { config, store, limiter };
+  const context = { config, store, analytics, limiter };
   let admin;
   let cleanupTimer;
 
@@ -505,8 +535,8 @@ export async function createCommunityService(options = {}) {
         throw error;
       }
       if (Number.isFinite(config.cleanupIntervalMs) && config.cleanupIntervalMs > 0) {
-        cleanupTimer = setInterval(() => store.cleanup().catch(() => {
-          process.stderr.write('TabMonger community retention cleanup failed; service is unhealthy.\n');
+        cleanupTimer = setInterval(() => Promise.all([store.cleanup(), analytics.cleanup()]).catch(() => {
+          process.stderr.write('TabMonger retention cleanup failed; service is unhealthy.\n');
           if (options.exitOnCleanupFailure === true) {
             process.exitCode = 1;
             setImmediate(() => process.exit(1));
