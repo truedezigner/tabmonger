@@ -27,8 +27,9 @@ const requiredSetupLinks = [
 function exerciseAnalyticsScript() {
   const analyticsSource = readFileSync(new URL('../public/site-analytics.js', import.meta.url), 'utf8');
 
-  function run(href, initialStorage = {}) {
+  function run(href, initialStorage = {}, initialSessionStorage = {}, initialCookie = '') {
     const storage = new Map(Object.entries(initialStorage));
+    const sessionStorage = new Map(Object.entries(initialSessionStorage));
     const requests = [];
     const documentListeners = new Map();
     const windowListeners = new Map();
@@ -49,13 +50,25 @@ function exerciseAnalyticsScript() {
         setItem: (key, value) => storage.set(key, value),
         removeItem: (key) => storage.delete(key),
       },
+      sessionStorage: {
+        getItem: (key) => sessionStorage.get(key) ?? null,
+        setItem: (key, value) => sessionStorage.set(key, value),
+      },
       history: { replaceState: (...args) => historyCalls.push(args) },
       addEventListener: (name, listener) => windowListeners.set(name, listener),
     };
     const document = {
       referrer: '',
+      documentElement: { dataset: {} },
       addEventListener: (name, listener) => documentListeners.set(name, listener),
     };
+    let cookie = initialCookie;
+    Object.defineProperty(document, 'cookie', {
+      get: () => cookie,
+      set: (value) => {
+        cookie = /Max-Age=0/.test(value) ? '' : value.split(';')[0];
+      },
+    });
     const fetch = (url, options) => {
       requests.push({ url, options });
       return Promise.resolve({ ok: true });
@@ -63,7 +76,7 @@ function exerciseAnalyticsScript() {
     vm.runInNewContext(analyticsSource, {
       window, document, fetch, URL, Element, HTMLAnchorElement, CustomEvent,
     });
-    return { storage, requests, documentListeners, windowListeners, historyCalls, HTMLAnchorElement };
+    return { storage, sessionStorage, requests, documentListeners, windowListeners, historyCalls, HTMLAnchorElement, document };
   }
 
   const disabled = run('https://tabmonger.com/?utm_source=github&analytics=off#downloads');
@@ -71,6 +84,7 @@ function exerciseAnalyticsScript() {
       || disabled.requests.length !== 0
       || disabled.documentListeners.size !== 0
       || disabled.windowListeners.size !== 0
+      || disabled.document.documentElement.dataset.analytics !== 'off'
       || disabled.historyCalls[0]?.[2] !== '/?utm_source=github#downloads') {
     throw new Error('Browser-local analytics opt-out contract failed.');
   }
@@ -78,6 +92,8 @@ function exerciseAnalyticsScript() {
     'tabmonger.site.analytics.optout.v1': '1',
   });
   if (persisted.requests.length !== 0) throw new Error('Persisted analytics opt-out contract failed.');
+  const cookieOnly = run('https://tabmonger.com/downloads', {}, {}, 'tm_analytics=off');
+  if (cookieOnly.requests.length !== 0) throw new Error('Cookie analytics opt-out contract failed.');
 
   const enabled = run('https://tabmonger.com/?analytics=on', {
     'tabmonger.site.analytics.optout.v1': '1',
@@ -94,6 +110,10 @@ function exerciseAnalyticsScript() {
   if (JSON.parse(enabled.requests[1]?.options.body || '{}').event !== 'download_windows') {
     throw new Error('Explicit platform download counter contract failed.');
   }
+  const reload = run('https://tabmonger.com/', {}, {
+    'tabmonger.site.analytics.pageview.v1': '1',
+  });
+  if (reload.requests.length !== 0) throw new Error('Reload page-view deduplication contract failed.');
 }
 
 function redacted(value = '') {
@@ -148,7 +168,7 @@ function assertCommunityExperience(html, label) {
     if (!html.includes(marker)) throw new Error(`${label}: missing community form/poll contract: ${marker}.`);
   }
 
-  if (!html.includes('src="/community.js?v=3"') || !html.includes('src="/site-analytics.js?v=2"') || !html.includes('defer')) {
+  if (!html.includes('src="/community.js?v=3"') || !html.includes('src="/site-analytics.js?v=3"') || !html.includes('defer')) {
     throw new Error(`${label}: community behavior must load from the first-party deferred script.`);
   }
 
@@ -189,9 +209,11 @@ function assertCommunityExperience(html, label) {
     "'download_linux'",
     "'poll_vote'",
     "const OPTOUT_KEY = 'tabmonger.site.analytics.optout.v1'",
+    "const OPTOUT_COOKIE = 'tm_analytics=off'",
+    "const PAGE_VIEW_SESSION_KEY = 'tabmonger.site.analytics.pageview.v1'",
     "directive === 'off'",
     "directive === 'on'",
-    'if (optedOut) return',
+    'if (optedOut) {',
     'anchor.dataset.analyticsEvent',
     'JSON.stringify({ event, source })',
   ]) {

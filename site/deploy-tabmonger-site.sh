@@ -346,7 +346,7 @@ sudo grep -q 'Your rules\.' "$CANDIDATE_BODY"
 sudo grep -Fq 'data-community-form' "$CANDIDATE_BODY"
 sudo grep -Fq 'action="/api/community/submissions"' "$CANDIDATE_BODY"
 sudo grep -Fq 'data-community-poll' "$CANDIDATE_BODY"
-sudo grep -Fq 'site-analytics.js?v=2' "$CANDIDATE_BODY"
+sudo grep -Fq 'site-analytics.js?v=3' "$CANDIDATE_BODY"
 for analytics_event in \
   download_macos \
   download_windows \

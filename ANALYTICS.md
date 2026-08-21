@@ -51,9 +51,11 @@ Records expire after 180 days. The server compacts old records during routine cl
 
 ## Browser-local opt-out
 
-Opening `https://tabmonger.com/?analytics=off` once disables website analytics in that browser profile. The preference is stored only in that browser's local storage, the query parameter is removed from the visible address, and no page-view or click events are sent while it remains disabled. Opening `https://tabmonger.com/?analytics=on` turns the counters back on.
+Opening `https://tabmonger.com/?analytics=off` once disables website analytics in that browser profile. The preference is stored in that browser's first-party local storage and a first-party opt-out preference cookie; the query parameter is removed only after one of those safeguards succeeds. No page-view or click events are sent while it remains disabled. Opening `https://tabmonger.com/?analytics=on` turns the counters back on.
 
-The opt-out is deliberately available to anyone and is not tied to an account, IP address, cookie, or secret owner token. It must be enabled once in each browser profile or device that should be excluded.
+Ordinary page views are counted at most once per tab session. Reloading the same tab does not increase the counter.
+
+The opt-out is deliberately available to anyone and is not tied to an account, IP address, advertising identifier, or secret owner token. It must be enabled once in each browser profile or device that should be excluded.
 
 ## Private dashboard
 

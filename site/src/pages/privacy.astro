@@ -11,7 +11,8 @@ import Logo from '../components/Logo.astro';
     <section>
       <h2>Aggregate website metrics</h2>
       <p>For each allowlisted website event, the server stores only the UTC date, a general action such as a page view or download click, and a coarse source category such as direct, search, GitHub, or Reddit. Raw referral URLs never leave your browser. The analytics store does not contain IP addresses, one-way source hashes, cookies, browser identifiers, user agents, full URLs, query strings, or fingerprints.</p>
-      <p>Download clicks are counted by the button chosen—macOS, Windows, Linux, Chrome/Brave/Edge, Firefox, or a general app download. TabMonger does not inspect or infer your operating system. Anyone can disable these website counters in one browser profile by opening <a href="/?analytics=off">the analytics opt-out link</a>; the preference stays only in that browser's local storage.</p>
+      <p>Download clicks are counted by the button chosen—macOS, Windows, Linux, Chrome/Brave/Edge, Firefox, or a general app download. TabMonger does not inspect or infer your operating system. Page views are counted at most once per tab session, so reloading one tab does not inflate the total.</p>
+      <p>Anyone can disable these website counters in one browser profile by opening <a href="/?analytics=off">the analytics opt-out link</a>. The browser remembers that choice using first-party local storage and a first-party opt-out preference cookie. It is not an advertising or visitor identifier and contains no personal information.</p>
       <p>A salted one-way source hash may exist briefly in server memory to rate-limit abuse. It is not written with an analytics event. Aggregate records expire after 180 days and are used only to improve TabMonger, not to build or sell advertising profiles.</p>
     </section>
     <section>

@@ -15,6 +15,10 @@
 
 - Portable launchers now prefer opening the shareable private-LAN address, with localhost kept as a fallback
 
+### Fixed
+
+- Strengthened the browser-local analytics opt-out with a first-party preference-cookie fallback and stopped same-tab reloads from increasing page views
+
 ## 1.2.0 — Per-tile dark mode
 
 ### Added

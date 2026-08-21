@@ -3,6 +3,8 @@
 
   const ENDPOINT = '/api/analytics/event';
   const OPTOUT_KEY = 'tabmonger.site.analytics.optout.v1';
+  const OPTOUT_COOKIE = 'tm_analytics=off';
+  const PAGE_VIEW_SESSION_KEY = 'tabmonger.site.analytics.pageview.v1';
   const EVENTS = new Set([
     'page_view',
     'download_portable',
@@ -20,18 +22,30 @@
 
   const optedOut = (() => {
     let disabled = false;
+    let preferenceSaved = false;
     try {
       const url = new URL(window.location.href);
       const directive = url.searchParams.get('analytics');
       if (directive === 'off') {
-        window.localStorage.setItem(OPTOUT_KEY, '1');
         disabled = true;
+        try {
+          window.localStorage.setItem(OPTOUT_KEY, '1');
+          preferenceSaved = window.localStorage.getItem(OPTOUT_KEY) === '1';
+        } catch {}
+        try {
+          document.cookie = `${OPTOUT_COOKIE}; Max-Age=31536000; Path=/; SameSite=Lax; Secure`;
+          preferenceSaved ||= document.cookie.split(';').some((value) => value.trim() === OPTOUT_COOKIE);
+        } catch {}
       } else if (directive === 'on') {
-        window.localStorage.removeItem(OPTOUT_KEY);
+        try { window.localStorage.removeItem(OPTOUT_KEY); } catch {}
+        try { document.cookie = 'tm_analytics=; Max-Age=0; Path=/; SameSite=Lax; Secure'; } catch {}
       } else {
-        disabled = window.localStorage.getItem(OPTOUT_KEY) === '1';
+        try { disabled = window.localStorage.getItem(OPTOUT_KEY) === '1'; } catch {}
+        try {
+          disabled ||= document.cookie.split(';').some((value) => value.trim() === OPTOUT_COOKIE);
+        } catch {}
       }
-      if (directive === 'off' || directive === 'on') {
+      if (directive === 'on' || (directive === 'off' && preferenceSaved)) {
         url.searchParams.delete('analytics');
         window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
       }
@@ -41,7 +55,10 @@
     return disabled;
   })();
 
-  if (optedOut) return;
+  if (optedOut) {
+    document.documentElement.dataset.analytics = 'off';
+    return;
+  }
 
   const category = (value) => {
     const source = String(value || '').trim().toLowerCase();
@@ -110,5 +127,10 @@
     if (typeof analyticsEvent === 'string') record(analyticsEvent);
   });
 
-  record('page_view');
+  let pageViewAlreadyCounted = false;
+  try {
+    pageViewAlreadyCounted = window.sessionStorage.getItem(PAGE_VIEW_SESSION_KEY) === '1';
+    if (!pageViewAlreadyCounted) window.sessionStorage.setItem(PAGE_VIEW_SESSION_KEY, '1');
+  } catch {}
+  if (!pageViewAlreadyCounted) record('page_view');
 })();
