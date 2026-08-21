@@ -357,6 +357,10 @@ for analytics_event in \
 done
 sudo grep -Fq 'Nothing is added to the poll automatically.' "$CANDIDATE_BODY"
 sudo grep -Fq 'Feature details and general feedback stay private.' "$CANDIDATE_BODY"
+sudo curl -fsS -D "$CANDIDATE_HEADERS" -o /dev/null "${CANDIDATE_URL}/?analytics=off"
+sudo grep -qi '^Set-Cookie: tm_analytics=off;.*Max-Age=31536000;.*SameSite=Lax' "$CANDIDATE_HEADERS"
+sudo curl -fsS -D "$CANDIDATE_HEADERS" -o /dev/null "${CANDIDATE_URL}/?analytics=on"
+sudo grep -qi '^Set-Cookie: tm_analytics=;.*Max-Age=0;.*SameSite=Lax' "$CANDIDATE_HEADERS"
 for release_asset in \
   TabMonger-portable.zip \
   TabMonger-Chromium-extension.zip \
@@ -473,6 +477,20 @@ analytics_status=$(sudo curl -sS -o "$CANDIDATE_RESPONSE" -w '%{http_code}' \
   --data '{"event":"page_view","source":"direct"}' \
   "${CANDIDATE_URL}/api/analytics/event")
 [ "$analytics_status" = 202 ]
+analytics_count_before_optout=$(sudo curl -fsS "${CANDIDATE_METRICS_URL}/api/analytics/report?days=30" \
+  | grep -o '"page_view":[0-9]*' | head -1 | cut -d: -f2)
+optout_analytics_status=$(sudo curl -sS -o "$CANDIDATE_RESPONSE" -w '%{http_code}' \
+  -H 'Origin: https://tabmonger.com' \
+  -H 'Sec-Fetch-Site: same-origin' \
+  -H 'CF-Connecting-IP: 192.0.2.15' \
+  -H 'Cookie: tm_analytics=off' \
+  -H 'Content-Type: application/json' \
+  --data '{"event":"page_view","source":"direct"}' \
+  "${CANDIDATE_URL}/api/analytics/event")
+[ "$optout_analytics_status" = 202 ]
+analytics_count_after_optout=$(sudo curl -fsS "${CANDIDATE_METRICS_URL}/api/analytics/report?days=30" \
+  | grep -o '"page_view":[0-9]*' | head -1 | cut -d: -f2)
+[ "$analytics_count_before_optout" = "$analytics_count_after_optout" ]
 sudo curl -fsS "${CANDIDATE_METRICS_URL}/metrics/" | sudo grep -Fq 'Private project pulse'
 sudo curl -fsS "${CANDIDATE_METRICS_URL}/api/analytics/report?days=30" | sudo grep -Eq '"page_view":[1-9][0-9]*'
 public_report_status=$(sudo curl -sS -o /dev/null -w '%{http_code}' "${CANDIDATE_URL}/api/analytics/report")

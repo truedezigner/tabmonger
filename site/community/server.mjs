@@ -19,6 +19,7 @@ const MIN_SALT_BYTES = 32;
 const MAX_SALT_BYTES = 4_096;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1_000;
 const API_PREFIX = '/api/';
+const HASH_PATTERN = /^[a-f0-9]{64}$/;
 
 const MIME_TYPES = new Map([
   ['.avif', 'image/avif'],
@@ -79,6 +80,16 @@ function normalizeOrigin(value) {
   return parsed.origin;
 }
 
+function normalizeExcludedSourceHashes(value) {
+  const entries = Array.isArray(value)
+    ? value
+    : String(value ?? '').split(',').map((entry) => entry.trim()).filter(Boolean);
+  if (entries.length > 64 || entries.some((entry) => !HASH_PATTERN.test(entry))) {
+    throw new Error('ANALYTICS_EXCLUDED_SOURCE_HASHES must contain comma-separated lowercase SHA-256 hashes.');
+  }
+  return new Set(entries);
+}
+
 function resolveConfig(options) {
   const env = options.env ?? process.env;
   const originsInput = options.allowedOrigins
@@ -95,6 +106,9 @@ function resolveConfig(options) {
   }
 
   const dataDir = path.resolve(options.dataDir ?? env.COMMUNITY_DATA_DIR ?? '/data/community');
+  const analyticsExcludedSourceHashes = normalizeExcludedSourceHashes(
+    options.analyticsExcludedSourceHashes ?? env.ANALYTICS_EXCLUDED_SOURCE_HASHES,
+  );
   return {
     host: options.host ?? env.HOST ?? '0.0.0.0',
     port: integer(options.port ?? env.PORT, 8081, { min: 0, max: 65_535 }),
@@ -106,6 +120,7 @@ function resolveConfig(options) {
     allowedOrigins,
     salt,
     trustProxy: options.trustProxy ?? env.COMMUNITY_TRUST_PROXY === '1',
+    analyticsExcludedSourceHashes,
     bodyLimit: integer(options.bodyLimit, BODY_LIMIT, { min: 1_024, max: 64 * 1_024 }),
     cleanupIntervalMs: options.cleanupIntervalMs ?? CLEANUP_INTERVAL_MS,
     rateLimits: options.rateLimits,
@@ -185,6 +200,12 @@ function clientAddress(request, trustProxy) {
 
 function hmac(salt, namespace, value) {
   return createHmac('sha256', salt).update(namespace).update('\0').update(value).digest('hex');
+}
+
+function analyticsOptedOut(request) {
+  const cookie = request.headers.cookie;
+  if (typeof cookie !== 'string' || cookie.length > 4_096) return false;
+  return cookie.split(';').some((value) => value.trim() === 'tm_analytics=off');
 }
 
 function readJson(request, limit) {
@@ -375,6 +396,10 @@ async function apiRequest(request, response, context) {
     if (!exactSameOrigin(request, context.config.allowedOrigins)) throw new HttpError(403, 'forbidden');
     if (!rateLimit(response, context.limiter, 'analytics', sourceHash)) return;
     const event = validateAnalyticsEvent(await readJson(request, 1_024));
+    if (analyticsOptedOut(request) || context.config.analyticsExcludedSourceHashes.has(sourceHash)) {
+      json(response, 202, { ok: true });
+      return;
+    }
     await context.analytics.record(event);
     json(response, 202, { ok: true });
     return;

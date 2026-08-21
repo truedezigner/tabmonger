@@ -51,7 +51,11 @@ Records expire after 180 days. The server compacts old records during routine cl
 
 ## Browser-local opt-out
 
-Opening `https://tabmonger.com/?analytics=off` once disables website analytics in that browser profile. The preference is stored in that browser's first-party local storage and a first-party opt-out preference cookie; the query parameter is removed only after one of those safeguards succeeds. No page-view or click events are sent while it remains disabled. Opening `https://tabmonger.com/?analytics=on` turns the counters back on.
+Opening `https://tabmonger.com/?analytics=off` once disables website analytics in that browser profile. Nginx sets a first-party opt-out preference cookie on the response, while the browser script also stores the preference in first-party local storage. The query parameter is removed only after client persistence succeeds. No page-view or click events are recorded while it remains disabled. Opening `https://tabmonger.com/?analytics=on` turns the counters back on.
+
+The analytics API independently honors `tm_analytics=off` and returns success without recording the event. This server-side boundary protects the opt-out even when a stale or cached page script attempts to send an event.
+
+For an operator who needs exclusion across several browsers on one connection, production may privately configure `ANALYTICS_EXCLUDED_SOURCE_HASHES`. Each value is a salted HMAC of a network source calculated with the deployment secret. Matching events are discarded before recording. Raw addresses and the configured hashes are never committed or written into the analytics dataset. A changed ISP address requires refreshing the private runtime hash; the browser opt-out remains the portable fallback.
 
 Ordinary page views are counted at most once per tab session. Reloading the same tab does not increase the counter.
 
@@ -78,6 +82,20 @@ A weekly server-side report is generated under:
 ```
 
 The report process runs on the server, not on a user workstation. Public GitHub stars, forks, and release-download totals may be included without authentication. GitHub clone traffic requires a private owner token and is deliberately omitted from the initial version.
+
+## Implementation map
+
+- `site/public/site-analytics.js` — event allowlist, coarse-source classification, browser opt-out, reload deduplication, and explicit download-button mapping
+- `site/community/analytics.mjs` — server-side validation, append-only aggregate records, reports, and 180-day cleanup
+- `site/community/server.mjs` — same-origin enforcement and server-side opt-out-cookie refusal
+- `/opt/apps/data/tabmonger-site/runtime.env` — private optional operator source-hash exclusions; never committed
+- `site/nginx.conf` — response-level opt-out/opt-in cookie handling and public/private routing
+- `site/public/metrics/` — private dashboard assets
+- `site/community/render-report.mjs` — protected weekly Markdown summary
+- `site/scripts/check-support-build.mjs` — functional opt-out, reload, platform-event, privacy, download, and support smoke contracts
+- `site/deploy-tabmonger-site.sh` — candidate-first deployment and private/public route checks
+
+The durable opt-out and same-tab reload fix are present on public `main` at commit `0eafd63`. Version `1.2.1` remains the current portable-app release because this follow-up changed only the marketing website.
 
 ## Privacy promise
 

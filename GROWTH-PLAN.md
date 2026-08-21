@@ -13,13 +13,13 @@ TabMonger should grow by being genuinely useful, easy to try, and easy to recomm
 
 The primary measure is **successful installs that become repeat use**. The public site cannot see private app usage, so the practical funnel is:
 
-1. Marketing-site visits.
+1. Marketing-site tab sessions, with same-tab reloads deduplicated.
 2. General, macOS, Windows, and Linux app-download clicks.
 3. Chrome/Brave/Edge and Firefox companion-download clicks.
 4. GitHub visits, stars, forks, and release downloads.
 5. Community votes, feedback, and support clicks.
 
-Weekly review should compare totals with the prior seven and 28 days. Repeat a promotion only when it produces meaningful downloads or community activity, not merely page views.
+Weekly review should compare totals with the prior seven and 28 days. Download numbers are button-click interest signals, not OS fingerprinting or proof that a download completed. Repeat a promotion only when it produces meaningful downloads or community activity, not merely page views.
 
 ## Built-in growth loops
 
@@ -64,8 +64,8 @@ Weekly review should compare totals with the prior seven and 28 days. Repeat a p
 
 Every week, record:
 
-- Page views and source mix.
-- General, macOS, Windows, Linux, Chrome/Brave/Edge, and Firefox downloads.
+- Page-view sessions and source mix.
+- General, macOS, Windows, Linux, Chrome/Brave/Edge, and Firefox download clicks.
 - GitHub opens, stars, forks, and release downloads where public data is available.
 - Poll votes, suggestions, support clicks, and feedback submissions.
 - The top source by meaningful actions.
@@ -80,6 +80,8 @@ The private LAN metrics page provides the site counters. A server-side weekly re
 - No email list or promotional message without explicit opt-in.
 - No analytics in downloaded TabMonger or its extensions.
 - No raw referrers, IP addresses, user agents, cookies, fingerprints, or visitor identifiers in the aggregate analytics store.
+- A first-party analytics opt-out preference may remain in the visitor's browser, but its value is never written into the aggregate analytics store.
+- Private operator source exclusions use salted one-way hashes and discard matches before recording; neither raw addresses nor configured hashes belong in public source or analytics records.
 - No external post, launch, email, or paid campaign without Jon’s approval.
 
 ## Cost and expectations

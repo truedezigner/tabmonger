@@ -130,6 +130,8 @@ node extensions/scripts/runtime-tests.mjs
 
 The public Astro website lives under `site/` and has its own build and checkout smoke test documented in [`site/README.md`](site/README.md).
 
+The downloaded dashboard and browser companions contain no analytics. The public marketing site's narrow aggregate counters, per-platform download-click mapping, browser opt-out, and private metrics boundary are documented in [`ANALYTICS.md`](ANALYTICS.md).
+
 ## Additional documentation
 
 - [Installation and LAN setup](docs/INSTALL.md)

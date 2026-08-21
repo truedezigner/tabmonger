@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { chmod, mkdir, readdir, readFile, rename, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
@@ -498,7 +498,10 @@ test('submission rate limiting is keyed by a salted source hash', async (t) => {
 });
 
 test('aggregate analytics accepts only allowlisted counters and stores no visitor details', async (t) => {
-  const app = await fixture();
+  const excludedIp = '198.51.100.88';
+  const excludedSourceHash = createHmac('sha256', TEST_SALT)
+    .update('source').update('\0').update(excludedIp).digest('hex');
+  const app = await fixture({ analyticsExcludedSourceHashes: [excludedSourceHash] });
   t.after(() => app.close());
 
   let response = await post(app, '/api/analytics/event', { event: 'page_view', source: 'search' }, {
@@ -512,6 +515,14 @@ test('aggregate analytics accepts only allowlisted counters and stores no visito
     response = await post(app, '/api/analytics/event', { event, source: 'direct' });
     assert.equal(response.status, 202);
   }
+  response = await post(app, '/api/analytics/event', { event: 'page_view', source: 'direct' }, {
+    headers: { Cookie: 'unrelated=yes; tm_analytics=off' },
+  });
+  assert.equal(response.status, 202);
+  response = await post(app, '/api/analytics/event', { event: 'page_view', source: 'direct' }, {
+    ip: excludedIp,
+  });
+  assert.equal(response.status, 202);
 
   response = await post(app, '/api/analytics/event', { event: 'page_view', source: 'search', visitor: 'not-allowed' });
   assert.equal(response.status, 400);
@@ -564,6 +575,13 @@ test('startup fails closed for a missing or short hash salt and for corrupt pers
     allowedOrigins: [ORIGIN],
     salt: 'short',
   }), /COMMUNITY_HASH_SALT/);
+  await assert.rejects(createCommunityService({
+    dataDir: path.join(root, 'invalid-exclusion'),
+    staticRoot: root,
+    allowedOrigins: [ORIGIN],
+    salt: TEST_SALT,
+    analyticsExcludedSourceHashes: ['not-a-hash'],
+  }), /ANALYTICS_EXCLUDED_SOURCE_HASHES/);
 
   const corruptDir = path.join(root, 'corrupt');
   await mkdir(corruptDir, { recursive: true });

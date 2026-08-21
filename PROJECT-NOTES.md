@@ -36,11 +36,29 @@ Once per local day, the server creates a complete portable JSON backup under the
 
 ## Network and browser model
 
-The default listener is `0.0.0.0:8787` so trusted LAN devices can share one dashboard. The launcher advertises loopback, private IPv4, and shared-space private-VPN addresses. A stable DHCP reservation, local hostname, or fixed private-VPN address is recommended for browser companions.
+The default listener is `0.0.0.0:8787` so trusted LAN devices can share one dashboard. The launcher prefers opening a private IPv4 LAN address that can be reused in browser companions, while retaining loopback as a fallback. It also advertises shared-space private-VPN addresses. A stable DHCP reservation, local hostname, or fixed private-VPN address is recommended for browser companions.
 
 The server has no account system. Host validation, Fetch Metadata/Origin checks, framing denial, safe upload resolution, and sandboxed upload responses reduce browser attack surface, but deployment still belongs on a trusted LAN, private VPN, or authenticated proxy. Public-looking proxy/VPN hostnames must be listed in `TABMONGER_ALLOWED_HOSTS`.
 
 The browser companions override the new-tab page with a small local extension page and then perform top-level navigation to the saved TabMonger address. This avoids iframe, authentication, download, and frame-policy problems. Only `storage` is required; a host permission is requested only if the user enables the friendly health check.
+
+## Public website, community, and metrics
+
+The website is operationally separate from the downloaded dashboard. Its Astro/Nginx frontend and dependency-free Node community service live under `site/`; neither component is included in the telemetry-free dashboard runtime.
+
+- Feedback remains private unless the owner approves a short feature title for the public poll.
+- Poll responses expose only approved IDs, reviewed titles, vote totals, starter-vote totals, and update time.
+- Website analytics accept only an allowlisted event and a coarse source category.
+- Download interest is recorded by the button selected: general app, macOS, Windows, Linux, Chrome/Brave/Edge, or Firefox. It does not inspect a visitor's operating system.
+- Page views are counted at most once per tab session, so reloading one tab does not inflate traffic.
+- `?analytics=off` disables website events for one browser profile using a response-set, non-identifying first-party preference cookie plus local-storage redundancy. The API itself refuses opted-out events, including attempts from stale cached scripts. `?analytics=on` reverses it.
+- Production can privately exclude an operator connection by salted source HMAC. The API drops a match before recording; raw addresses and configured hashes stay out of the repository and analytics dataset.
+- The analytics store contains only UTC date, allowlisted event, and coarse source. It contains no IP address, cookie, visitor ID, user agent, full URL, query string, fingerprint, or raw referrer.
+- The metrics dashboard and report API are LAN-only; the public origin returns `404` for both. A server-side timer writes a protected weekly report.
+
+Candidate deployments build and test the site and community service against a disposable copy of persistent state. Only a passing candidate may replace production, and the deployment retains rollback images and protected backups.
+
+The complete data contract is in [`ANALYTICS.md`](ANALYTICS.md); the distribution plan is in [`GROWTH-PLAN.md`](GROWTH-PLAN.md).
 
 ## Service monitoring model
 
@@ -73,3 +91,7 @@ The public site uses the final geometric browser/dashboard mark and a stable inl
 ## Contribution philosophy
 
 The extension surface is deliberately inspectable: built-in configuration, trusted local CSS/JavaScript, source contributions, and small reviewed recipes. TabMonger does not auto-install remote plugins because the dashboard contains private addresses and saved URLs.
+
+## Current release checkpoint
+
+Version `1.2.1` is the current portable release. It includes per-tile darkening/inversion, macOS/Windows/Linux launchers, Chromium and Firefox companion packages, and LAN-first startup. The later website hotfix at commit `0eafd63` made the browser-local analytics opt-out durable and stopped same-tab reloads from increasing page views; it did not change the downloaded app or extension packages.

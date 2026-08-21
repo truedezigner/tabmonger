@@ -10,6 +10,7 @@ const builtAnalyticsScript = new URL('../dist/site-analytics.js', import.meta.ur
 const builtMetricsPage = new URL('../dist/metrics/index.html', import.meta.url);
 const builtMetricsScript = new URL('../dist/metrics/metrics.js', import.meta.url);
 const builtPrivacyPage = new URL('../dist/privacy/index.html', import.meta.url);
+const nginxConfig = readFileSync(new URL('../nginx.conf', import.meta.url), 'utf8');
 const stripeHost = ['buy', 'stripe', 'com'].join('.');
 const smokeCheckoutUrl = `https://${stripeHost}/support-smoke-placeholder`;
 const releaseBaseUrl = 'https://github.com/truedezigner/tabmonger/releases/latest/download';
@@ -305,6 +306,14 @@ function assertActive(html, label) {
 }
 
 exerciseAnalyticsScript();
+
+for (const contract of [
+  'map $arg_analytics $tabmonger_analytics_cookie',
+  'tm_analytics=off; Max-Age=31536000',
+  'add_header Set-Cookie $tabmonger_analytics_cookie always',
+]) {
+  if (!nginxConfig.includes(contract)) throw new Error(`Nginx opt-out contract is missing ${contract}.`);
+}
 
 assertActive(build('preferred variable', {
   PUBLIC_SUPPORT_URL: smokeCheckoutUrl,

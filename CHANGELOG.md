@@ -17,7 +17,7 @@
 
 ### Fixed
 
-- Strengthened the browser-local analytics opt-out with a first-party preference-cookie fallback and stopped same-tab reloads from increasing page views
+- Strengthened analytics exclusion with a response-set first-party preference cookie, server-side event refusal, optional private operator source hashes, and same-tab reload deduplication
 
 ## 1.2.0 — Per-tile dark mode
 
