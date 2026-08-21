@@ -46,6 +46,42 @@ const features = [
   ['Small on purpose', 'One Python standard-library process, SQLite, plain HTML/CSS/JavaScript, and no runtime package installation.']
 ];
 
+type FeatureIconStroke = { d: string; accent?: boolean };
+const featureIconPaths: FeatureIconStroke[][] = [
+  [
+    { d: 'M5.5 4.5h3A1.5 1.5 0 0 1 10 6v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 4 9V6a1.5 1.5 0 0 1 1.5-1.5Z' },
+    { d: 'M15.5 4.5h3A1.5 1.5 0 0 1 20 6v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 14 9V6a1.5 1.5 0 0 1 1.5-1.5Z', accent: true },
+    { d: 'M5.5 14.5h3A1.5 1.5 0 0 1 10 16v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 4 19v-3a1.5 1.5 0 0 1 1.5-1.5Z' },
+    { d: 'M15.5 14.5h3A1.5 1.5 0 0 1 20 16v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 14 19v-3a1.5 1.5 0 0 1 1.5-1.5Z' }
+  ],
+  [
+    { d: 'M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z' },
+    { d: 'm15.4 15.4 4.1 4.1' },
+    { d: 'm7.5 10.6 1.8 1.8 4-4.2', accent: true }
+  ],
+  [
+    { d: 'M6 4.5h12A1.5 1.5 0 0 1 19.5 6v3A1.5 1.5 0 0 1 18 10.5H6A1.5 1.5 0 0 1 4.5 9V6A1.5 1.5 0 0 1 6 4.5Zm0 9h12a1.5 1.5 0 0 1 1.5 1.5v3A1.5 1.5 0 0 1 18 19.5H6A1.5 1.5 0 0 1 4.5 18v-3A1.5 1.5 0 0 1 6 13.5Z' },
+    { d: 'M11.5 7.5H16m-4.5 9H16' },
+    { d: 'M8 7.5h.01m-.01 9h.01', accent: true }
+  ],
+  [
+    { d: 'M4 6h2m4 0h10M4 12h9m4 0h3M4 18h5m4 0h7' },
+    { d: 'M8 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z', accent: true },
+    { d: 'M15 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z', accent: true },
+    { d: 'M11 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z', accent: true }
+  ],
+  [
+    { d: 'M5.5 7.5h13A1.5 1.5 0 0 1 20 9v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V9a1.5 1.5 0 0 1 1.5-1.5Z' },
+    { d: 'M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5' },
+    { d: 'M12 10v5m-2-2 2 2 2-2', accent: true }
+  ],
+  [
+    { d: 'M8 6.5h8A1.5 1.5 0 0 1 17.5 8v8a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 16V8A1.5 1.5 0 0 1 8 6.5Z' },
+    { d: 'M9 3.5v3m6-3v3m-6 11v3m6-3v3M3.5 9h3m-3 6h3m11-6h3m-3 6h3' },
+    { d: 'M10 10h4v4h-4Z', accent: true }
+  ]
+];
+
 const steps = [
   ['1', 'Download', 'Grab one ZIP from GitHub or clone the repository.'],
   ['2', 'Start', 'Run the small Python 3.10+ server on Linux, macOS, Windows, a NAS, or a home server.'],
@@ -104,7 +140,7 @@ const hostPlatforms = [
       <a href="#features">Features</a>
       <a href="#downloads">Downloads</a>
       <a href="#use-everywhere">Use everywhere</a>
-      <a href="#community">Community</a>
+      <a href="#community-feedback">Feedback &amp; poll</a>
       <a href={githubUrl}>GitHub</a>
     </nav>
     <a class="button button-small coffee-button" href={supportReady ? supportUrl : '#support'} target={supportReady ? '_blank' : undefined} rel={supportReady ? 'noopener' : undefined} aria-label="Support TabMonger with an optional one-time contribution">
@@ -171,7 +207,13 @@ const hostPlatforms = [
         {features.map(([title, body], index) => (
           <article class="feature-card">
             <span class="feature-number">0{index + 1}</span>
-            <div class={`feature-icon icon-${index + 1}`} aria-hidden="true"><i></i><i></i><i></i></div>
+            <div class={`feature-icon icon-${index + 1}`} aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                {featureIconPaths[index].map(({ d, accent }) => (
+                  <path d={d} class={accent ? 'feature-icon-accent' : undefined}></path>
+                ))}
+              </svg>
+            </div>
             <h3>{title}</h3>
             <p>{body}</p>
           </article>
@@ -379,6 +421,112 @@ const hostPlatforms = [
       <p class="community-note">New to open source? A clear issue, a tested fix, or a documentation improvement is a real contribution.</p>
     </section>
 
+    <section class="section shell community-feedback-section" id="community-feedback" aria-labelledby="community-feedback-title">
+      <div class="community-feedback-intro">
+        <div class="section-heading">
+          <p class="eyebrow"><span></span> Community-powered roadmap</p>
+          <h2 id="community-feedback-title">Improve TabMonger.<br /><em>Help choose what comes next.</em></h2>
+          <p>Vote for the idea you want most, suggest your own, or send private feedback. Feature titles are reviewed before they can join the public poll.</p>
+        </div>
+        <ul class="community-privacy-list" aria-label="Feedback privacy details">
+          <li><span aria-hidden="true">✓</span><b>No email or account</b><small>Submissions are anonymous.</small></li>
+          <li><span aria-hidden="true">✓</span><b>Owner reviewed</b><small>Nothing is added to the poll automatically.</small></li>
+          <li><span aria-hidden="true">✓</span><b>Titles only</b><small>Feature details and general feedback stay private.</small></li>
+        </ul>
+      </div>
+
+      <div class="community-workbench">
+        <article class="community-panel feedback-panel" aria-labelledby="feedback-form-title">
+          <div class="community-panel-heading">
+            <span class="panel-number" aria-hidden="true">01</span>
+            <div>
+              <p class="panel-kicker">Your idea</p>
+              <h3 id="feedback-form-title">Suggest your own</h3>
+              <p>No contact details needed. General feedback never appears publicly; feature titles only become public after owner approval.</p>
+            </div>
+          </div>
+
+          <form class="community-form" id="feature-request-form" data-community-form action="/api/community/submissions" method="post">
+            <noscript><p class="community-noscript">This private submission form needs JavaScript enabled. The rest of the site still works without it.</p></noscript>
+            <fieldset class="kind-picker">
+              <legend>What would you like to send?</legend>
+              <div class="kind-options">
+                <label class="kind-option">
+                  <input type="radio" name="kind" value="feature" checked data-community-kind />
+                  <span><b>Feature request</b><small>Reviewed for the public poll</small></span>
+                </label>
+                <label class="kind-option">
+                  <input type="radio" name="kind" value="feedback" data-community-kind />
+                  <span><b>General feedback</b><small>Always kept private</small></span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="community-field">
+              <div class="field-label-row">
+                <label for="community-title" data-community-title-label>Feature title</label>
+                <span><output data-character-count="community-title">0</output>/80</span>
+              </div>
+              <input id="community-title" name="title" type="text" minlength="3" maxlength="80" required autocomplete="off" aria-describedby="community-title-help" />
+              <small id="community-title-help" data-community-title-help>Keep it short and specific. If approved, this title is the only part shown publicly.</small>
+            </div>
+
+            <div class="community-field">
+              <div class="field-label-row">
+                <label for="community-details" data-community-details-label>How would this help?</label>
+                <span><output data-character-count="community-details">0</output>/1200</span>
+              </div>
+              <textarea id="community-details" name="details" minlength="5" maxlength="1200" rows="7" required aria-describedby="community-details-help"></textarea>
+              <small id="community-details-help">Details give the owner context and are never published in the poll. Please leave out personal or sensitive information.</small>
+            </div>
+
+            <div class="form-trap" aria-hidden="true">
+              <label for="community-website">Leave this field empty</label>
+              <input id="community-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+            </div>
+
+            <div class="community-submit-row">
+              <button class="button button-primary" type="submit" data-community-submit>Send for review</button>
+              <p class="community-form-status" data-community-form-status role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </article>
+
+        <article class="community-panel poll-panel" aria-labelledby="feature-poll-title" data-community-poll aria-busy="true">
+          <div class="community-panel-heading poll-heading">
+            <span class="panel-number" aria-hidden="true">02</span>
+            <div>
+              <div class="poll-title-row">
+                <div>
+                  <p class="panel-kicker">Owner-approved ideas</p>
+                  <h3 id="feature-poll-title">What should we build next?</h3>
+                </div>
+                <span class="live-label"><i aria-hidden="true"></i> Live</span>
+              </div>
+              <p>Choose one idea to reveal the live results. You can change your vote anytime.</p>
+            </div>
+          </div>
+
+          <p class="poll-state" data-poll-state role="status" aria-live="polite">Loading approved feature ideas…</p>
+          <ol class="poll-list" data-poll-list aria-label="Approved feature requests" hidden></ol>
+
+          <a class="poll-suggest-link" href="#feature-request-form" data-suggest-idea>
+            <span aria-hidden="true">+</span>
+            <span><b>Suggest your own idea</b><small>Send it for review, then it can join the poll.</small></span>
+            <i aria-hidden="true">→</i>
+          </a>
+
+          <div class="poll-footer">
+            <p data-vote-status role="status" aria-live="polite">One current vote per locally stored browser ID. This lightweight poll does not create an account or claim to prevent every duplicate vote.</p>
+            <div>
+              <time data-poll-updated hidden></time>
+              <button class="poll-refresh" type="button" data-poll-refresh>Refresh poll</button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="section support-section shell" id="support">
       <div class="support-card">
         <div>
@@ -407,7 +555,7 @@ const hostPlatforms = [
       <div><Logo /><p>A quiet home for everything you host.</p></div>
       <div><b>Project</b><a href="#features">Features</a><a href="#install">Setup</a><a href="#downloads">Downloads</a><a href={extensionsUrl}>New-tab companion source</a><a href={githubUrl}>Source code</a></div>
       <div><b>Principles</b><span>Private by default</span><span>No telemetry</span><a href="/privacy/">Privacy</a></div>
-      <div><b>Community</b><a href={`${githubUrl}/issues`}>Ideas and issues</a>{supportReady ? <a href={supportUrl} target="_blank" rel="noopener">Optional contribution</a> : <span>Contributions opening soon</span>}<a href="/support-policy/">Support policy</a></div>
+      <div><b>Community</b><a href="#community-feedback">Feedback &amp; feature poll</a><a href={`${githubUrl}/issues`}>GitHub issues</a>{supportReady ? <a href={supportUrl} target="_blank" rel="noopener">Optional contribution</a> : <span>Contributions opening soon</span>}<a href="/support-policy/">Support policy</a></div>
     </div>
     <div class="shell footer-bottom"><span>© {new Date().getFullYear()} TabMonger</span><span>Built small on purpose.</span></div>
   </footer>
@@ -422,4 +570,5 @@ const hostPlatforms = [
       window.setTimeout(() => { button.textContent = 'Copy'; }, 1600);
     });
   </script>
+  <script is:inline src="/community.js" defer></script>
 </Layout>

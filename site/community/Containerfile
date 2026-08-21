@@ -1,0 +1,22 @@
+FROM docker.io/library/node:22-alpine
+
+RUN addgroup -S -g 10001 community \
+    && adduser -S -D -H -u 10001 -G community community \
+    && mkdir -p /app/community /data/community \
+    && chown -R community:community /app/community /data/community
+
+WORKDIR /app/community
+COPY --chown=community:community community/ /app/community/
+RUN node --test --test-concurrency=1 test/*.test.mjs
+
+ENV HOST=127.0.0.1 \
+    PORT=8081 \
+    COMMUNITY_DATA_DIR=/data/community \
+    COMMUNITY_ADMIN_SOCKET=/data/community/admin.sock \
+    STATIC_ROOT=/nonexistent-tabmonger-static-root \
+    NODE_ENV=production
+
+USER 10001:10001
+EXPOSE 8081
+
+CMD ["node", "server.mjs"]

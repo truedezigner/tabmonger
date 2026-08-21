@@ -4,6 +4,8 @@ import { spawnSync } from 'node:child_process';
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const siteRoot = new URL('..', import.meta.url);
 const builtPage = new URL('../dist/index.html', import.meta.url);
+const builtCommunityScript = new URL('../dist/community.js', import.meta.url);
+const builtPrivacyPage = new URL('../dist/privacy/index.html', import.meta.url);
 const stripeHost = ['buy', 'stripe', 'com'].join('.');
 const smokeCheckoutUrl = `https://${stripeHost}/support-smoke-placeholder`;
 const releaseBaseUrl = 'https://github.com/truedezigner/tabmonger/releases/latest/download';
@@ -43,7 +45,66 @@ function build(label, overrides, shouldPass = true) {
   if (!passed) return `${result.stdout}\n${result.stderr}`;
   const html = readFileSync(builtPage, 'utf8');
   assertReleaseDownloads(html, label);
+  assertCommunityExperience(html, label);
   return html;
+}
+
+function assertCommunityExperience(html, label) {
+  const script = readFileSync(builtCommunityScript, 'utf8');
+  const privacy = readFileSync(builtPrivacyPage, 'utf8');
+
+  for (const marker of [
+    'data-community-form',
+    'action="/api/community/submissions"',
+    'data-community-poll',
+    'data-poll-list',
+    'Nothing is added to the poll automatically.',
+    'Feature details and general feedback stay private.',
+    'Owner reviewed',
+    'Titles only',
+  ]) {
+    if (!html.includes(marker)) throw new Error(`${label}: missing community form/poll contract: ${marker}.`);
+  }
+
+  if (!html.includes('src="/community.js"') || !html.includes('defer')) {
+    throw new Error(`${label}: community behavior must load from the first-party deferred script.`);
+  }
+
+  for (const endpoint of [
+    '/api/community/submissions',
+    '/api/community/poll',
+    '/api/community/vote',
+  ]) {
+    if (!script.includes(`'${endpoint}'`)) {
+      throw new Error(`${label}: community script is missing ${endpoint}.`);
+    }
+  }
+
+  for (const contract of [
+    "kind === 'feedback'",
+    'JSON.stringify({ featureId: item.id, voterId })',
+    'UUID_V4_PATTERN',
+    'window.crypto?.getRandomValues',
+    'title.textContent = item.title',
+    'pollList.replaceChildren()',
+  ]) {
+    if (!script.includes(contract)) throw new Error(`${label}: community script is missing safe contract: ${contract}.`);
+  }
+
+  for (const unsafeSink of ['.innerHTML', '.outerHTML', 'insertAdjacentHTML', 'document.write', 'eval(']) {
+    if (script.includes(unsafeSink)) throw new Error(`${label}: community script contains unsafe DOM/code sink ${unsafeSink}.`);
+  }
+
+  for (const privacyDisclosure of [
+    'General feedback stays private.',
+    'only its title and vote total appear in the public poll',
+    'automatically removed after 30 days',
+    'Unreviewed submissions expire after 180 days',
+  ]) {
+    if (!privacy.includes(privacyDisclosure)) {
+      throw new Error(`${label}: privacy page is missing community disclosure: ${privacyDisclosure}.`);
+    }
+  }
 }
 
 function assertReleaseDownloads(html, label) {
@@ -128,4 +189,4 @@ for (const [label, value] of [
   }
 }
 
-console.log('Site smoke check passed: three platform launchers, browser companion ordering, release downloads, setup disclosures, preferred and legacy Stripe links, 3 CTAs, pending state, and invalid-host rejection.');
+console.log('Site smoke check passed: platform and browser downloads, Stripe states, moderated feedback/poll UI, safe title-only rendering, privacy disclosures, and invalid-host rejection.');
