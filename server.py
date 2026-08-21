@@ -27,7 +27,7 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT / "public"
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.2.1"
 LEGACY_DATA = ROOT / "data"
 LEGACY_UPLOADS = ROOT / "assets" / "uploads"
 MAX_BODY = 24 * 1024 * 1024
@@ -969,9 +969,9 @@ def advertised_urls(host: str, port: int, addresses: list[str] | None = None) ->
     urls: list[tuple[str, str]] = []
     normalized = host.strip().casefold()
     if normalized in {"", "0.0.0.0", "::", "[::]"}:
-        urls.append(("This computer", f"http://127.0.0.1:{port}/"))
         for address in lan_ipv4_addresses() if addresses is None else addresses:
-            urls.append(("Your network", f"http://{address}:{port}/"))
+            urls.append(("Open everywhere", f"http://{address}:{port}/"))
+        urls.append(("This computer", f"http://127.0.0.1:{port}/"))
     elif normalized in {"127.0.0.1", "localhost", "::1", "[::1]"}:
         display_host = "[::1]" if ":" in normalized else host
         urls.append(("This computer", f"http://{display_host}:{port}/"))
@@ -979,6 +979,14 @@ def advertised_urls(host: str, port: int, addresses: list[str] | None = None) ->
         display_host = f"[{host}]" if ":" in host and not host.startswith("[") else host
         urls.append(("Server", f"http://{display_host}:{port}/"))
     return urls
+
+
+def preferred_open_url(urls: list[tuple[str, str]]) -> str:
+    """Prefer the shareable LAN address and fall back to this computer."""
+    for label, url in urls:
+        if label == "Open everywhere":
+            return url
+    return urls[0][1]
 
 
 def existing_tabmonger_url(port: int) -> str | None:
@@ -1038,7 +1046,7 @@ def main(argv: list[str] | None = None) -> int:
             if running_url:
                 urls = print_startup_banner(args.host, candidate, already_running=True)
                 if args.open_browser:
-                    webbrowser.open(urls[0][1])
+                    webbrowser.open(preferred_open_url(urls))
                 return 0
             if not args.find_port:
                 print(f"TabMonger could not start: port {candidate} is already in use.", file=sys.stderr)
@@ -1060,7 +1068,7 @@ def main(argv: list[str] | None = None) -> int:
     if actual_port != args.port and args.port:
         print(f"Port {args.port} was busy, so this launch is using port {actual_port}.\n", flush=True)
     if args.open_browser:
-        threading.Thread(target=webbrowser.open, args=(urls[0][1],), name="tabmonger-browser", daemon=True).start()
+        threading.Thread(target=webbrowser.open, args=(preferred_open_url(urls),), name="tabmonger-browser", daemon=True).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

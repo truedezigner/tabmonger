@@ -96,6 +96,7 @@ const hostPlatforms = [
     launcher: 'Start TabMonger.command',
     command: 'Open “Start TabMonger.command”',
     downloadLabel: 'Download for macOS',
+    analyticsEvent: 'download_macos',
     setupUrl: macSetupUrl,
     steps: [
       ['Download + unzip', 'Move the extracted TabMonger folder somewhere you want to keep it.'],
@@ -110,6 +111,7 @@ const hostPlatforms = [
     launcher: 'Start TabMonger.bat',
     command: 'Start TabMonger.bat',
     downloadLabel: 'Download for Windows',
+    analyticsEvent: 'download_windows',
     setupUrl: windowsSetupUrl,
     steps: [
       ['Download + extract', 'Extract the complete ZIP to a normal folder before starting it.'],
@@ -124,6 +126,7 @@ const hostPlatforms = [
     launcher: 'Start TabMonger.sh',
     command: './Start\\ TabMonger.sh',
     downloadLabel: 'Download for Linux',
+    analyticsEvent: 'download_linux',
     setupUrl: linuxSetupUrl,
     steps: [
       ['Download + extract', 'Keep the extracted TabMonger folder in a normal location.'],
@@ -155,7 +158,7 @@ const hostPlatforms = [
         <h1>Your tabs.<br /><em>Your server.</em><br />Your rules.</h1>
         <p class="hero-lede">TabMonger is a fast, dependency-free home for every link and service you use—without turning your new tab into another cloud account.</p>
         <div class="hero-actions">
-          <a class="button button-primary" href={downloadUrl}>Download TabMonger <span aria-hidden="true">↓</span></a>
+          <a class="button button-primary" href={downloadUrl} data-analytics-event="download_portable">Download TabMonger <span aria-hidden="true">↓</span></a>
           <a class="button" href="#install">See the simple setup</a>
         </div>
         <p class="hero-note">Free and open source, always. No app telemetry. No account. Built to be extended.</p>
@@ -265,7 +268,7 @@ const hostPlatforms = [
         <p>Then open <b>http://your-server-ip:8787</b></p>
       </div>
       <div class="install-actions">
-        <a class="button button-primary" href={downloadUrl}>Download ZIP</a>
+        <a class="button button-primary" href={downloadUrl} data-analytics-event="download_portable">Download ZIP</a>
         <a class="button" href={quickStartUrl}>Read the quick start</a>
       </div>
       <aside class="safety-note"><b>Keep it private.</b> TabMonger is designed for your LAN or a protected private network. Do not expose your personal dashboard directly to the public internet without authentication.</aside>
@@ -305,10 +308,10 @@ const hostPlatforms = [
                 <div class="launcher-terminal" aria-label={`${platform.name} launcher`}>
                   <div><i></i><i></i><i></i><span>{platform.name.toLowerCase()}</span></div>
                   <code>{platform.command}</code>
-                  <p><span aria-hidden="true">✓</span> Opens locally + prints your LAN address</p>
+                  <p><span aria-hidden="true">✓</span> Opens the LAN address + prints a local fallback</p>
                 </div>
                 <div class="download-actions">
-                  <a class="button button-primary download-button" href={downloadUrl}>{platform.downloadLabel} <span aria-hidden="true">↓</span></a>
+                  <a class="button button-primary download-button" href={downloadUrl} data-analytics-event={platform.analyticsEvent}>{platform.downloadLabel} <span aria-hidden="true">↓</span></a>
                   <a class="download-source-link" href={platform.setupUrl}>{platform.name} setup guide <span aria-hidden="true">→</span></a>
                 </div>
                 <small>Portable source app · Python 3.10+ · Launcher: <code>{platform.launcher}</code></small>
@@ -333,7 +336,7 @@ const hostPlatforms = [
               <h4>Chrome, Brave, and Edge</h4>
               <p>Point every new tab at the TabMonger address already running on your trusted network.</p>
               <div class="download-actions">
-                <a class="button download-button" href={chromiumDownloadUrl}>Download for Chrome / Brave / Edge <span aria-hidden="true">↓</span></a>
+                <a class="button download-button" href={chromiumDownloadUrl} data-analytics-event="download_chromium">Download for Chrome / Brave / Edge <span aria-hidden="true">↓</span></a>
                 <a class="download-source-link" href={chromiumSetupUrl}>Source and setup <span aria-hidden="true">→</span></a>
               </div>
               <small>Unzip it, enable Developer mode, and load the extracted <code>TabMonger-Chromium-extension</code> folder.</small>
@@ -347,7 +350,7 @@ const hostPlatforms = [
               <h4>Firefox</h4>
               <p>Use the same lightweight companion without sending your dashboard address to a hosted service.</p>
               <div class="download-actions">
-                <a class="button download-button" href={firefoxDownloadUrl}>Download Firefox ZIP <span aria-hidden="true">↓</span></a>
+                <a class="button download-button" href={firefoxDownloadUrl} data-analytics-event="download_firefox">Download Firefox ZIP <span aria-hidden="true">↓</span></a>
                 <a class="download-source-link" href={firefoxSetupUrl}>Source and setup <span aria-hidden="true">→</span></a>
               </div>
               <small>Standard Firefox installation is temporary until Mozilla signing; Firefox removes the manually loaded add-on after restart.</small>
@@ -569,6 +572,6 @@ const hostPlatforms = [
       window.setTimeout(() => { button.textContent = 'Copy'; }, 1600);
     });
   </script>
-  <script is:inline src="/site-analytics.js?v=1" defer></script>
+  <script is:inline src="/site-analytics.js?v=2" defer></script>
   <script is:inline src="/community.js?v=3" defer></script>
 </Layout>

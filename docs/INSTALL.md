@@ -9,7 +9,7 @@ TabMonger runs on Windows, macOS, or Linux with Python 3.10 or newer. The dashbo
 3. Start the launcher for your system.
 4. Keep its window open while using TabMonger.
 
-The launcher opens `http://127.0.0.1:8787/` on the host and prints one or more private LAN addresses for other trusted devices. If port 8787 belongs to another program, it chooses a nearby free port and prints the actual address.
+The launcher prefers opening a private LAN address such as `http://192.168.1.20:8787/`, so that same address can be saved in browser companions on trusted computers. It also prints a localhost fallback. If port 8787 belongs to another program, it chooses a nearby free port and prints the actual address.
 
 ## Windows
 

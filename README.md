@@ -16,7 +16,7 @@ TabMonger is a tiny, self-hosted new-tab dashboard for links, private services, 
    - Windows: `Start TabMonger.bat`
    - macOS: `Start TabMonger.command`
    - Linux: `Start TabMonger.sh`
-4. Keep the launcher window open. TabMonger opens locally and prints a LAN address such as `http://192.168.1.20:8787/` for trusted computers on the same network.
+4. Keep the launcher window open. TabMonger prefers opening and printing a LAN address such as `http://192.168.1.20:8787/` for trusted computers on the same network, with localhost available as a fallback.
 
 Python 3.10 or newer is the only runtime requirement. Windows may ask whether Python and TabMonger can use the network; allow private networks only. See the [complete installation guide](docs/INSTALL.md) for platform notes, firewall help, automatic startup, updates, and a stable-address recommendation.
 

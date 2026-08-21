@@ -14,8 +14,8 @@ TabMonger should grow by being genuinely useful, easy to try, and easy to recomm
 The primary measure is **successful installs that become repeat use**. The public site cannot see private app usage, so the practical funnel is:
 
 1. Marketing-site visits.
-2. Portable app downloads.
-3. Browser-companion downloads.
+2. General, macOS, Windows, and Linux app-download clicks.
+3. Chrome/Brave/Edge and Firefox companion-download clicks.
 4. GitHub visits, stars, forks, and release downloads.
 5. Community votes, feedback, and support clicks.
 
@@ -65,7 +65,7 @@ Weekly review should compare totals with the prior seven and 28 days. Repeat a p
 Every week, record:
 
 - Page views and source mix.
-- Portable and browser-companion downloads.
+- General, macOS, Windows, Linux, Chrome/Brave/Edge, and Firefox downloads.
 - GitHub opens, stars, forks, and release downloads where public data is available.
 - Poll votes, suggestions, support clicks, and feedback submissions.
 - The top source by meaningful actions.
@@ -85,4 +85,3 @@ The private LAN metrics page provides the site counters. A server-side weekly re
 ## Cost and expectations
 
 The initial measurement and launch plan can run on the existing TabMonger server for effectively $0 additional infrastructure cost. Growth is experimental; no plan can guarantee virality. The practical target is a steadily improving install funnel and a small community that recommends TabMonger because it works well.
-

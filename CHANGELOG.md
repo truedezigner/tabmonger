@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Community signals
+## 1.2.1 — Community pulse and LAN-first startup
 
 ### Added
 
@@ -8,6 +8,12 @@
 - A LAN-only metrics dashboard and server-generated weekly Markdown report
 - A documented twelve-week open-source growth plan and measurement contract
 - Clearly disclosed project-owner starter votes for the community feature poll
+- Browser-local website analytics opt-out for the project owner or any visitor
+- Separate macOS, Windows, Linux, Chrome/Brave/Edge, and Firefox download-interest counters
+
+### Changed
+
+- Portable launchers now prefer opening the shareable private-LAN address, with localhost kept as a fallback
 
 ## 1.2.0 — Per-tile dark mode
 

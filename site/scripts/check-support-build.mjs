@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import vm from 'node:vm';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const siteRoot = new URL('..', import.meta.url);
@@ -22,6 +23,78 @@ const requiredSetupLinks = [
   'https://github.com/truedezigner/tabmonger/blob/main/docs/INSTALL.md#macos',
   'https://github.com/truedezigner/tabmonger/blob/main/docs/INSTALL.md#linux',
 ];
+
+function exerciseAnalyticsScript() {
+  const analyticsSource = readFileSync(new URL('../public/site-analytics.js', import.meta.url), 'utf8');
+
+  function run(href, initialStorage = {}) {
+    const storage = new Map(Object.entries(initialStorage));
+    const requests = [];
+    const documentListeners = new Map();
+    const windowListeners = new Map();
+    const historyCalls = [];
+    class Element { closest() { return this; } }
+    class HTMLAnchorElement extends Element {
+      constructor(url, analyticsEvent) {
+        super();
+        this.href = url;
+        this.dataset = analyticsEvent ? { analyticsEvent } : {};
+      }
+    }
+    class CustomEvent { constructor(detail) { this.detail = detail; } }
+    const window = {
+      location: { href, origin: new URL(href).origin },
+      localStorage: {
+        getItem: (key) => storage.get(key) ?? null,
+        setItem: (key, value) => storage.set(key, value),
+        removeItem: (key) => storage.delete(key),
+      },
+      history: { replaceState: (...args) => historyCalls.push(args) },
+      addEventListener: (name, listener) => windowListeners.set(name, listener),
+    };
+    const document = {
+      referrer: '',
+      addEventListener: (name, listener) => documentListeners.set(name, listener),
+    };
+    const fetch = (url, options) => {
+      requests.push({ url, options });
+      return Promise.resolve({ ok: true });
+    };
+    vm.runInNewContext(analyticsSource, {
+      window, document, fetch, URL, Element, HTMLAnchorElement, CustomEvent,
+    });
+    return { storage, requests, documentListeners, windowListeners, historyCalls, HTMLAnchorElement };
+  }
+
+  const disabled = run('https://tabmonger.com/?utm_source=github&analytics=off#downloads');
+  if (disabled.storage.get('tabmonger.site.analytics.optout.v1') !== '1'
+      || disabled.requests.length !== 0
+      || disabled.documentListeners.size !== 0
+      || disabled.windowListeners.size !== 0
+      || disabled.historyCalls[0]?.[2] !== '/?utm_source=github#downloads') {
+    throw new Error('Browser-local analytics opt-out contract failed.');
+  }
+  const persisted = run('https://tabmonger.com/downloads', {
+    'tabmonger.site.analytics.optout.v1': '1',
+  });
+  if (persisted.requests.length !== 0) throw new Error('Persisted analytics opt-out contract failed.');
+
+  const enabled = run('https://tabmonger.com/?analytics=on', {
+    'tabmonger.site.analytics.optout.v1': '1',
+  });
+  if (enabled.storage.has('tabmonger.site.analytics.optout.v1')
+      || JSON.parse(enabled.requests[0]?.options.body || '{}').event !== 'page_view') {
+    throw new Error('Analytics opt-in contract failed.');
+  }
+  const anchor = new enabled.HTMLAnchorElement(
+    `${releaseBaseUrl}/TabMonger-portable.zip`,
+    'download_windows',
+  );
+  enabled.documentListeners.get('click')({ target: anchor });
+  if (JSON.parse(enabled.requests[1]?.options.body || '{}').event !== 'download_windows') {
+    throw new Error('Explicit platform download counter contract failed.');
+  }
+}
 
 function redacted(value = '') {
   return value.replace(/https:\/\/buy\.stripe\.com\/[^\s"']+/g, '[STRIPE_URL_REDACTED]');
@@ -75,7 +148,7 @@ function assertCommunityExperience(html, label) {
     if (!html.includes(marker)) throw new Error(`${label}: missing community form/poll contract: ${marker}.`);
   }
 
-  if (!html.includes('src="/community.js?v=3"') || !html.includes('src="/site-analytics.js?v=1"') || !html.includes('defer')) {
+  if (!html.includes('src="/community.js?v=3"') || !html.includes('src="/site-analytics.js?v=2"') || !html.includes('defer')) {
     throw new Error(`${label}: community behavior must load from the first-party deferred script.`);
   }
 
@@ -111,7 +184,15 @@ function assertCommunityExperience(html, label) {
     "const ENDPOINT = '/api/analytics/event'",
     "'page_view'",
     "'download_portable'",
+    "'download_macos'",
+    "'download_windows'",
+    "'download_linux'",
     "'poll_vote'",
+    "const OPTOUT_KEY = 'tabmonger.site.analytics.optout.v1'",
+    "directive === 'off'",
+    "directive === 'on'",
+    'if (optedOut) return',
+    'anchor.dataset.analyticsEvent',
     'JSON.stringify({ event, source })',
   ]) {
     if (!analytics.includes(analyticsContract)) throw new Error(`${label}: analytics script is missing ${analyticsContract}.`);
@@ -159,6 +240,18 @@ function assertReleaseDownloads(html, label) {
       throw new Error(`${label}: missing platform setup guide ${setupUrl.split('#').at(-1)}.`);
     }
   }
+  for (const event of [
+    'download_portable',
+    'download_macos',
+    'download_windows',
+    'download_linux',
+    'download_chromium',
+    'download_firefox',
+  ]) {
+    if (!html.includes(`data-analytics-event="${event}"`)) {
+      throw new Error(`${label}: missing explicit download counter ${event}.`);
+    }
+  }
   const platformDownloads = html.indexOf('data-platform-downloads');
   const browserDownloads = html.indexOf('data-browser-downloads');
   const chromiumCard = html.indexOf('Chrome, Brave, and Edge', browserDownloads);
@@ -188,6 +281,8 @@ function assertActive(html, label) {
     if (!html.includes(text)) throw new Error(`${label}: missing an active support CTA.`);
   }
 }
+
+exerciseAnalyticsScript();
 
 assertActive(build('preferred variable', {
   PUBLIC_SUPPORT_URL: smokeCheckoutUrl,

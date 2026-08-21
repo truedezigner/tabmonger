@@ -31,8 +31,8 @@ START_HERE = """TabMonger portable
 2. Windows: double-click "Start TabMonger.bat".
    macOS: double-click "Start TabMonger.command".
    Linux: double-click "Start TabMonger.sh" and choose Run if prompted.
-3. Keep the launcher window open. TabMonger prints and opens the address for
-   this computer, plus an address usable by trusted devices on the same LAN.
+3. Keep the launcher window open. TabMonger prefers the private LAN address
+   usable by trusted devices, with a localhost address available as a fallback.
 4. To make that address your new-tab page, follow extensions/README.md and
    load the included Chromium or Firefox companion folder.
 

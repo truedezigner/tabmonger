@@ -11,6 +11,9 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export const analyticsEvents = Object.freeze([
   'page_view',
   'download_portable',
+  'download_macos',
+  'download_windows',
+  'download_linux',
   'download_chromium',
   'download_firefox',
   'github_open',

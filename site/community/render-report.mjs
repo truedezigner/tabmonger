@@ -19,8 +19,13 @@ if (!Number.isSafeInteger(days) || days < 1 || days > 180) {
     '## Funnel',
     '',
     `- Page views: ${report.totals.page_view || 0}`,
-    `- Portable app downloads: ${report.totals.download_portable || 0}`,
-    `- Browser companion downloads: ${total(['download_chromium', 'download_firefox'])}`,
+    `- Total download clicks: ${total(['download_portable', 'download_macos', 'download_windows', 'download_linux', 'download_chromium', 'download_firefox'])}`,
+    `- General app download clicks: ${report.totals.download_portable || 0}`,
+    `- macOS download clicks: ${report.totals.download_macos || 0}`,
+    `- Windows download clicks: ${report.totals.download_windows || 0}`,
+    `- Linux download clicks: ${report.totals.download_linux || 0}`,
+    `- Chrome / Brave / Edge download clicks: ${report.totals.download_chromium || 0}`,
+    `- Firefox download clicks: ${report.totals.download_firefox || 0}`,
     `- GitHub opens: ${report.totals.github_open || 0}`,
     `- Poll votes: ${report.totals.poll_vote || 0}`,
     `- Feedback form opens: ${report.totals.feedback_open || 0}`,
@@ -36,4 +41,3 @@ if (!Number.isSafeInteger(days) || days < 1 || days > 180) {
   ];
   process.stdout.write(lines.join('\n'));
 }
-

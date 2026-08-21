@@ -346,7 +346,15 @@ sudo grep -q 'Your rules\.' "$CANDIDATE_BODY"
 sudo grep -Fq 'data-community-form' "$CANDIDATE_BODY"
 sudo grep -Fq 'action="/api/community/submissions"' "$CANDIDATE_BODY"
 sudo grep -Fq 'data-community-poll' "$CANDIDATE_BODY"
-sudo grep -Fq 'site-analytics.js?v=1' "$CANDIDATE_BODY"
+sudo grep -Fq 'site-analytics.js?v=2' "$CANDIDATE_BODY"
+for analytics_event in \
+  download_macos \
+  download_windows \
+  download_linux \
+  download_chromium \
+  download_firefox; do
+  sudo grep -Fq "data-analytics-event=\"${analytics_event}\"" "$CANDIDATE_BODY"
+done
 sudo grep -Fq 'Nothing is added to the poll automatically.' "$CANDIDATE_BODY"
 sudo grep -Fq 'Feature details and general feedback stay private.' "$CANDIDATE_BODY"
 for release_asset in \

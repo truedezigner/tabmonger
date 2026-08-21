@@ -2,9 +2,13 @@
   'use strict';
 
   const ENDPOINT = '/api/analytics/event';
+  const OPTOUT_KEY = 'tabmonger.site.analytics.optout.v1';
   const EVENTS = new Set([
     'page_view',
     'download_portable',
+    'download_macos',
+    'download_windows',
+    'download_linux',
     'download_chromium',
     'download_firefox',
     'github_open',
@@ -13,6 +17,31 @@
     'feedback_submit',
     'poll_vote'
   ]);
+
+  const optedOut = (() => {
+    let disabled = false;
+    try {
+      const url = new URL(window.location.href);
+      const directive = url.searchParams.get('analytics');
+      if (directive === 'off') {
+        window.localStorage.setItem(OPTOUT_KEY, '1');
+        disabled = true;
+      } else if (directive === 'on') {
+        window.localStorage.removeItem(OPTOUT_KEY);
+      } else {
+        disabled = window.localStorage.getItem(OPTOUT_KEY) === '1';
+      }
+      if (directive === 'off' || directive === 'on') {
+        url.searchParams.delete('analytics');
+        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+      }
+    } catch {
+      disabled = new URL(window.location.href).searchParams.get('analytics') === 'off';
+    }
+    return disabled;
+  })();
+
+  if (optedOut) return;
 
   const category = (value) => {
     const source = String(value || '').trim().toLowerCase();
@@ -53,6 +82,8 @@
   };
 
   const eventForLink = (anchor) => {
+    const explicitEvent = anchor.dataset.analyticsEvent;
+    if (EVENTS.has(explicitEvent)) return explicitEvent;
     let url;
     try {
       url = new URL(anchor.href, window.location.href);

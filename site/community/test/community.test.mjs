@@ -508,6 +508,10 @@ test('aggregate analytics accepts only allowlisted counters and stores no visito
   assert.equal(response.status, 202);
   response = await post(app, '/api/analytics/event', { event: 'download_portable', source: 'github' });
   assert.equal(response.status, 202);
+  for (const event of ['download_macos', 'download_windows', 'download_linux', 'download_chromium', 'download_firefox']) {
+    response = await post(app, '/api/analytics/event', { event, source: 'direct' });
+    assert.equal(response.status, 202);
+  }
 
   response = await post(app, '/api/analytics/event', { event: 'page_view', source: 'search', visitor: 'not-allowed' });
   assert.equal(response.status, 400);
@@ -521,8 +525,14 @@ test('aggregate analytics accepts only allowlisted counters and stores no visito
   let report = await response.json();
   assert.equal(report.totals.page_view, 1);
   assert.equal(report.totals.download_portable, 1);
+  assert.equal(report.totals.download_macos, 1);
+  assert.equal(report.totals.download_windows, 1);
+  assert.equal(report.totals.download_linux, 1);
+  assert.equal(report.totals.download_chromium, 1);
+  assert.equal(report.totals.download_firefox, 1);
   assert.equal(report.sources.search, 1);
   assert.equal(report.sources.github, 1);
+  assert.equal(report.sources.direct, 5);
   assert.equal(report.daily.length, 30);
   assert.equal(report.daily.at(-1).page_view, 1);
 
@@ -535,6 +545,9 @@ test('aggregate analytics accepts only allowlisted counters and stores no visito
   report = await response.json();
   assert.equal(report.totals.page_view, 1);
   assert.equal(report.totals.download_portable, 1);
+  assert.equal(report.totals.download_macos, 1);
+  assert.equal(report.totals.download_windows, 1);
+  assert.equal(report.totals.download_linux, 1);
 
   response = await fetch(`${app.baseUrl}/api/analytics/report?days=181`);
   assert.equal(response.status, 400);

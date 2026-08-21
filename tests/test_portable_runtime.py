@@ -391,10 +391,18 @@ class LauncherAndReleaseTests(unittest.TestCase):
         self.assertEqual(
             server.advertised_urls("0.0.0.0", 8787, ["192.168.1.24", "10.0.0.7"]),
             [
+                ("Open everywhere", "http://192.168.1.24:8787/"),
+                ("Open everywhere", "http://10.0.0.7:8787/"),
                 ("This computer", "http://127.0.0.1:8787/"),
-                ("Your network", "http://192.168.1.24:8787/"),
-                ("Your network", "http://10.0.0.7:8787/"),
             ],
+        )
+        self.assertEqual(
+            server.preferred_open_url(server.advertised_urls("0.0.0.0", 8787, ["192.168.1.24"])),
+            "http://192.168.1.24:8787/",
+        )
+        self.assertEqual(
+            server.preferred_open_url(server.advertised_urls("127.0.0.1", 8787)),
+            "http://127.0.0.1:8787/",
         )
 
     def test_release_zip_contains_runtime_and_no_private_or_operator_state(self) -> None:

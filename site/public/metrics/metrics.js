@@ -3,9 +3,12 @@
 
   const labels = {
     page_view: 'Page views',
-    download_portable: 'Portable app downloads',
-    download_chromium: 'Chrome / Brave downloads',
-    download_firefox: 'Firefox downloads',
+    download_portable: 'General app download clicks',
+    download_macos: 'macOS download clicks',
+    download_windows: 'Windows download clicks',
+    download_linux: 'Linux download clicks',
+    download_chromium: 'Chrome / Brave / Edge download clicks',
+    download_firefox: 'Firefox download clicks',
     github_open: 'GitHub opens',
     support_open: 'Support checkout opens',
     feedback_open: 'Suggestion form opens',
@@ -56,7 +59,7 @@
     const points = daily.map((day) => ({
       date: day.date,
       views: Number(day.page_view || 0),
-      downloads: sum(day, ['download_portable', 'download_chromium', 'download_firefox'])
+      downloads: sum(day, ['download_portable', 'download_macos', 'download_windows', 'download_linux', 'download_chromium', 'download_firefox'])
     }));
     const maximum = Math.max(1, ...points.flatMap((point) => [point.views, point.downloads]));
     for (const point of points) {
@@ -87,7 +90,7 @@
       const report = await response.json();
       const totals = report.totals || {};
       setText('views', number.format(totals.page_view || 0));
-      setText('downloads', number.format(sum(totals, ['download_portable', 'download_chromium', 'download_firefox'])));
+      setText('downloads', number.format(sum(totals, ['download_portable', 'download_macos', 'download_windows', 'download_linux', 'download_chromium', 'download_firefox'])));
       setText('github', number.format(totals.github_open || 0));
       setText('community', number.format(sum(totals, ['poll_vote', 'feedback_open', 'feedback_submit'])));
       setText('support', number.format(totals.support_open || 0));
@@ -112,4 +115,3 @@
   load();
   window.setInterval(() => { if (document.visibilityState === 'visible') load(); }, 60_000);
 })();
-
